@@ -2,6 +2,7 @@ import os
 import logging
 import pandas as pd
 from ..models import Paciente
+from django.conf import settings
 
 logger = logging.getLogger('etl_logger')
 
@@ -23,7 +24,8 @@ class ETLService:
 
     @staticmethod
     def _extraer(ruta_archivo):
-        if not os.path.exists(ruta_archivo):
+        ruta_completa = os.path.abspath(os.path.join(settings.BASE_DIR, '..', 'datasets', ruta_archivo))
+        if not os.path.exists(f'{ruta_completa}'):
             logger.error(f"❌ Archivo no encontrado en: {ruta_archivo}")
             return None
 
@@ -31,9 +33,9 @@ class ETLService:
         
         try:
             if ext == '.csv':
-                df = pd.read_csv(ruta_archivo)
+                df = pd.read_csv(ruta_completa)
             elif ext in ['.xlsx', '.xls']:
-                df = pd.read_excel(ruta_archivo, engine='openpyxl')
+                df = pd.read_excel(ruta_completa, engine='openpyxl')
             else:
                 logger.error(f"❌ Formato de archivo no soportado: {ext}")
                 return None
@@ -44,54 +46,83 @@ class ETLService:
             logger.error(f"💥 Error al leer el archivo: {str(e)}")
             return None
 
+    @classmethod
+    def _transformar(cls, df):
+        """Fase 2: Transformación modularizada."""
+        df_limpio = cls._sub_deduplicar(df)
+        df_limpio = cls._sub_limpiar_nulos_criticos(df_limpio)
+        df_limpio = cls._sub_validar_rangos_clinicos(df_limpio)
+        df_limpio = cls._sub_imputar_permitidos(df_limpio)
+        df_limpio = cls._sub_normalizar_datos(df_limpio)
+        
+        logger.info(f"✨ Transformación completada. Registros aptos: {len(df_limpio)}")
+        return df_limpio
+
     @staticmethod
-    def _transformar(df):
-        """Fase 2: Transformación. Limpieza estricta para asegurar calidad en ML."""
-        # A. Deduplicación
+    def _sub_deduplicar(df):
         filas_inicio = len(df)
-        df_limpio = df.drop_duplicates(subset=['id_paciente'], keep='first').copy()
-        duplicados = filas_inicio - len(df_limpio)
+        df_out = df.drop_duplicates(subset=['id_paciente'], keep='first').copy()
+        duplicados = filas_inicio - len(df_out)
         if duplicados > 0:
             logger.warning(f"⚠️ Removidos {duplicados} registros duplicados.")
+        return df_out
 
-        
-        # Si falta alguno de estos, el registro se elimina para no sesgar la IA
-        constantes_vitales = ['presion_sistolica', 'presion_diastolica', 'frecuencia_cardiaca', 'saturacion_oxigeno', 'glucosa']
-        
-        filas_antes_vitales = len(df_limpio)
-        df_limpio = df_limpio.dropna(subset=constantes_vitales).copy()
-        incompletos_eliminados = filas_antes_vitales - len(df_limpio)
-        
-        if incompletos_eliminados > 0:
-            logger.warning(f"🛡️ Seguridad ML: Se eliminaron {incompletos_eliminados} registros por falta de constantes vitales esenciales.")
+    @staticmethod
+    def _sub_limpiar_nulos_criticos(df):
+        constantes = ['presion_sistolica', 'presion_diastolica', 'frecuencia_cardiaca', 'saturacion_oxigeno', 'glucosa']
+        filas_inicio = len(df)
+        df_out = df.dropna(subset=constantes).copy()
+        eliminados = filas_inicio - len(df_out)
+        if eliminados > 0:
+            logger.warning(f"🛡️ Seguridad ML: Se eliminaron {eliminados} registros por nulos vitales.")
+        return df_out
 
-        # C. Imputación Permitida (Variables no críticas para el algoritmo predictivo, como IMC o Edad si faltaran)
-        columnas_secundarias = ['edad', 'imc']
-        for col in columnas_secundarias:
-            if col in df_limpio.columns and df_limpio[col].isnull().any():
-                media = df_limpio[col].mean()
-                df_limpio[col] = df_limpio[col].fillna(media)
+    @staticmethod
+    def _sub_validar_rangos_clinicos(df):
+        filas_inicio = len(df)
+        df_out = df[
+            (df['presion_sistolica'] >= 40) & (df['presion_sistolica'] <= 300) &
+            (df['presion_diastolica'] >= 30) & (df['presion_diastolica'] <= 200) &
+            (df['saturacion_oxigeno'] >= 10) & (df['saturacion_oxigeno'] <= 100) &
+            (df['frecuencia_cardiaca'] >= 20) & (df['frecuencia_cardiaca'] <= 250) &
+            (df['glucosa'] >= 20) & (df['glucosa'] <= 600)
+        ].copy()
+        erroneos = filas_inicio - len(df_out)
+        if erroneos > 0:
+            logger.error(f"❌ CONTROL MÉDICO: Se descartaron {erroneos} registros con valores biológicamente imposibles.")
+        return df_out
+
+    @staticmethod
+    def _sub_imputar_permitidos(df):
+        df_out = df.copy()
+        for col in ['edad', 'imc']:
+            if col in df_out.columns and df_out[col].isnull().any():
+                media = df_out[col].mean()
+                df_out[col] = df_out[col].fillna(media)
                 logger.info(f"🩹 Nulos menores en '{col}' reemplazados por la media ({media:.2f}).")
+        return df_out
 
-        # D. Normalizar Diagnósticos
-        if 'diagnostico' in df_limpio.columns:
-            df_limpio['diagnostico'] = df_limpio['diagnostico'].astype(str).str.strip().str.lower()
+    @staticmethod
+    def _sub_normalizar_datos(df):
+        df_out = df.copy()
+        
+        # Diagnósticos
+        if 'diagnostico' in df_out.columns:
+            df_out['diagnostico'] = df_out['diagnostico'].astype(str).str.strip().str.lower()
             mapeo = {
                 'hipertencion': 'Hipertensión', 'hipertensíon': 'Hipertensión', 'hipertension': 'Hipertensión',
                 'cardiopatia': 'Cardiopatía', 'cardiopatía': 'Cardiopatía',
                 'obesidad': 'Obesidad', 'paciente sano': 'Paciente Sano', 'sano': 'Paciente Sano'
             }
-            df_limpio['diagnostico'] = df_limpio['diagnostico'].map(mapeo).fillna(df_limpio['diagnostico'].str.capitalize())
+            df_out['diagnostico'] = df_out['diagnostico'].map(mapeo).fillna(df_out['diagnostico'].str.capitalize())
 
-        # E. Normalizar Sexo
-        if 'sexo' in df_limpio.columns:
-            df_limpio['sexo'] = df_limpio['sexo'].astype(str).str.strip().str.upper()
-            df_limpio['sexo'] = df_limpio['sexo'].replace({'FEMENINO': 'F', 'MASCULINO': 'M'})
-            df_limpio['sexo'] = df_limpio['sexo'].apply(lambda x: x if x in ['M', 'F'] else 'M')
-
-        logger.info(f"✨ Transformación completada. Registros aptos para procesar: {len(df_limpio)}")
-        return df_limpio
-
+        # Sexo
+        if 'sexo' in df_out.columns:
+            df_out['sexo'] = df_out['sexo'].astype(str).str.strip().str.upper()
+            df_out['sexo'] = df_out['sexo'].replace({'FEMENINO': 'F', 'MASCULINO': 'M'})
+            df_out['sexo'] = df_out['sexo'].apply(lambda x: x if x in ['M', 'F'] else 'M')
+            
+        return df_out
     @staticmethod
     def _cargar(df):
         try:
@@ -133,3 +164,6 @@ class ETLService:
         except Exception as e:
             logger.error(f"💥 Fallo crítico en la carga a la BD: {str(e)}", exc_info=True)
             return False
+
+if '__name__'=='__main__': 
+    pass    
