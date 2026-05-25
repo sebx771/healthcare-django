@@ -1,0 +1,27 @@
+# variables de entorno
+.env
+.env.local
+# Entornos virtuales
+.venv/
+venv/
+ENV/
+env/
+
+# Caché de Python
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Configuración de editores
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+
+# Archivos del sistema
+.DS_Store
+Thumbs.db
