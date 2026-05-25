@@ -1,8 +1,9 @@
 import os
 import logging
 import pandas as pd
-from ..models import Paciente
+from ..models import Paciente , ArchivoETL
 from django.conf import settings
+from time import time
 
 logger = logging.getLogger('etl_logger')
 
@@ -14,13 +15,37 @@ class ETLService:
         logger.info("🚀 INICIANDO PROCESO ETL - PIPELINE INTEGRADO")
         logger.info("==================================================")
 
-        df_crudo = cls._extraer(ruta_archivo)
-        if df_crudo is None:
-            return False
 
-        df_limpio = cls._transformar(df_crudo)
-        exito = cls._cargar(df_limpio)
-        return exito
+        try:
+            start= time()
+            df_crudo = cls._extraer(ruta_archivo)
+            if df_crudo is None:
+                return False
+            
+            df_limpio = cls._transformar(df_crudo)
+            registros_conteo= len(df_limpio)
+            exito = cls._cargar(df_limpio)
+            end= time()
+            tiempo_total= start - end
+
+            ArchivoETL.objects.create(
+                    nombre=ruta_archivo,
+                    registros_procesados=registros_conteo,
+                    tiempo_ejecucion=tiempo_total,
+                    estado='EXITOSO'
+                )
+
+            return exito
+        except Exception as e:
+            fin = time.time()
+            ArchivoETL.objects.create(
+                    nombre=ruta_archivo,
+                    registros_procesados=0,
+                    tiempo_ejecucion=start-fin,
+                    estado='FALLIDO'
+                )
+            raise e
+
 
     @staticmethod
     def _extraer(ruta_archivo):
