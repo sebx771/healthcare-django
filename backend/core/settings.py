@@ -118,3 +118,44 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'
+
+# LOGGER PARA EL SEGUIMIENTO DEL PROCESO ETL (por implementar)
+import os
+from pathlib import Path
+
+#  raíz para guardar el archivo de log
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    # 1. FORMATTERS: Define cómo se va a ver cada línea del log (Fecha, nivel de error, mensaje)
+    'formatters': {
+        'verbose': {
+            'format': '{asctime} [{levelname}] {name} : {message}',
+            'style': '{',
+        },
+    },
+    # 2. HANDLERS: DÓNDE se envían los mensajes (A un archivo o a la consola)
+    'handlers': {
+        'file': {
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': os.path.join(BASE_DIR,'logs', 'etl.log'),  # El archivo se creará en la raíz
+            'formatter': 'verbose',
+        },
+        'console': {
+            'level': 'DEBUG',
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+    },
+    # 3. LOGGERS: El "canal" que tú vas a llamar desde tu código
+    'loggers': {
+        'etl_logger': {
+            'handlers': ['file', 'console'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+    },
+}
