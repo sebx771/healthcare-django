@@ -25,8 +25,8 @@ class ETLService:
             df_limpio = cls._transformar(df_crudo)
             registros_conteo= len(df_limpio)
             exito = cls._cargar(df_limpio)
-            end= time()
-            tiempo_total= start - end
+            end = time()
+            tiempo_total = end - start
 
             ArchivoETL.objects.create(
                     nombre=ruta_archivo,
@@ -37,13 +37,13 @@ class ETLService:
 
             return exito
         except Exception as e:
-            fin = time.time()
+            end = time()
             ArchivoETL.objects.create(
-                    nombre=ruta_archivo,
-                    registros_procesados=0,
-                    tiempo_ejecucion=start-fin,
-                    estado='FALLIDO'
-                )
+                nombre=ruta_archivo,
+                registros_procesados=0,
+                tiempo_ejecucion=end - start,
+                estado='FALLIDO'
+            )
             raise e
 
 
@@ -78,6 +78,7 @@ class ETLService:
         df_limpio = cls._sub_limpiar_nulos_criticos(df_limpio)
         df_limpio = cls._sub_validar_rangos_clinicos(df_limpio)
         df_limpio = cls._sub_imputar_permitidos(df_limpio)
+        df_limpio = cls._sub_calcular_imc_faltante(df_limpio)
         df_limpio = cls._sub_normalizar_datos(df_limpio)
         
         logger.info(f"✨ Transformación completada. Registros aptos: {len(df_limpio)}")
@@ -128,57 +129,83 @@ class ETLService:
         return df_out
 
     @staticmethod
+    def _sub_calcular_imc_faltante(df):
+        df_out = df.copy()
+        if 'imc' in df_out.columns:
+            mask_imc_vacio = df_out['imc'].isnull() | (df_out['imc'] == 0)
+            if mask_imc_vacio.any() and 'peso' in df_out.columns and 'altura' in df_out.columns:
+                pacientes_con_imc_vacio = mask_imc_vacio.sum()
+                df_out.loc[mask_imc_vacio, 'imc'] = (
+                    df_out.loc[mask_imc_vacio, 'peso'] / 
+                    (df_out.loc[mask_imc_vacio, 'altura'] ** 2)
+                )
+                logger.info(f"📐 IMC calculado para {pacientes_con_imc_vacio} registros usando fórmula peso/altura².")
+        return df_out
+
+    @staticmethod
     def _sub_normalizar_datos(df):
         df_out = df.copy()
-        
+
         # Diagnósticos
-        if 'diagnostico' in df_out.columns:
-            df_out['diagnostico'] = df_out['diagnostico'].astype(str).str.strip().str.lower()
+        if 'diagnostico_preliminar' in df_out.columns:
+            df_out['diagnostico_preliminar'] = df_out['diagnostico_preliminar'].astype(str).str.strip().str.lower()
             mapeo = {
                 'hipertencion': 'Hipertensión', 'hipertensíon': 'Hipertensión', 'hipertension': 'Hipertensión',
                 'cardiopatia': 'Cardiopatía', 'cardiopatía': 'Cardiopatía',
                 'obesidad': 'Obesidad', 'paciente sano': 'Paciente Sano', 'sano': 'Paciente Sano'
             }
-            df_out['diagnostico'] = df_out['diagnostico'].map(mapeo).fillna(df_out['diagnostico'].str.capitalize())
+            df_out['diagnostico_preliminar'] = df_out['diagnostico_preliminar'].map(mapeo).fillna(df_out['diagnostico_preliminar'].str.capitalize())
 
         # Sexo
         if 'sexo' in df_out.columns:
             df_out['sexo'] = df_out['sexo'].astype(str).str.strip().str.upper()
             df_out['sexo'] = df_out['sexo'].replace({'FEMENINO': 'F', 'MASCULINO': 'M'})
             df_out['sexo'] = df_out['sexo'].apply(lambda x: x if x in ['M', 'F'] else 'M')
-            
+
         return df_out
     @staticmethod
     def _cargar(df):
         try:
             Paciente.objects.all().delete()
-            
+
             pacientes_a_crear = []
             criticos_detectados = 0
 
             for _, fila in df.iterrows():
-                # Regla de negocio para alertas
                 es_critico = (
-                    fila['presion_sistolica'] > 140 or 
-                    fila['presion_diastolica'] > 90 or 
+                    fila['presion_sistolica'] > 140 or
+                    fila['presion_diastolica'] > 90 or
                     fila['saturacion_oxigeno'] < 90
                 )
                 if es_critico:
                     criticos_detectados += 1
 
+                nombres_val = str(fila.get('nombres', fila.get('nombre', f"Paciente {fila['id_paciente']}")))[:150]
+                apellidos_val = str(fila.get('apellidos', ''))[:150]
+
                 paciente = Paciente(
-                    id_paciente=fila['id_paciente'],
-                    nombre=fila.get('nombre', f"Paciente {fila['id_paciente']}"),
+                    id_paciente=int(fila['id_paciente']),
+                    nombres=nombres_val,
+                    apellidos=apellidos_val,
                     edad=int(fila['edad']),
-                    sexo=fila['sexo'],
-                    presion_sistolica=float(fila['presion_sistolica']),
-                    presion_diastolica=float(fila['presion_diastolica']),
-                    frecuencia_cardiaca=float(fila['frecuencia_cardiaca']),
+                    sexo=str(fila['sexo']),
+                    peso=fila.get('peso'),
+                    altura=fila.get('altura'),
+                    imc=float(fila['imc']) if pd.notna(fila.get('imc')) else None,
+                    presion_sistolica=int(fila['presion_sistolica']),
+                    presion_diastolica=int(fila['presion_diastolica']),
+                    frecuencia_cardiaca=int(fila['frecuencia_cardiaca']),
                     saturacion_oxigeno=float(fila['saturacion_oxigeno']),
+                    temperatura=fila.get('temperatura'),
                     glucosa=float(fila['glucosa']),
-                    imc=float(fila['imc']),
-                    diagnostico=fila['diagnostico'],
-                    es_critico=es_critico
+                    colesterol=fila.get('colesterol'),
+                    antecedentes_familiares=bool(fila.get('antecedentes_familiares', False)),
+                    fumador=bool(fila.get('fumador', False)),
+                    consumo_alcohol=bool(fila.get('consumo_alcohol', False)),
+                    actividad_fisica=str(fila.get('actividad_fisica', ''))[:50],
+                    diagnostico_preliminar=str(fila.get('diagnostico_preliminar', fila.get('diagnostico', '')))[:150],
+                    riesgo_enfermedad=str(fila.get('riesgo_enfermedad', ''))[:50],
+                    fecha_consulta=fila.get('fecha_consulta')
                 )
                 pacientes_a_crear.append(paciente)
 
