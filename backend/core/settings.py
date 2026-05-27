@@ -40,6 +40,7 @@ INSTALLED_APPS = [
 
     'corsheaders',
     'pacientes',
+    'ml'
 ]
 
 MIDDLEWARE = [
@@ -125,24 +126,36 @@ from pathlib import Path
 
 #  raíz para guardar el archivo de log
 BASE_DIR = Path(__file__).resolve().parent.parent
+LOGS_DIR = os.path.join(BASE_DIR, 'logs')
+os.makedirs(LOGS_DIR, exist_ok=True)
 
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
-    # 1. FORMATTERS: Define cómo se va a ver cada línea del log (Fecha, nivel de error, mensaje)
+    
+    # 1. FORMATTERS
     'formatters': {
         'verbose': {
             'format': '{asctime} [{levelname}] {name} : {message}',
             'style': '{',
         },
     },
-    # 2. HANDLERS: DÓNDE se envían los mensajes (A un archivo o a la consola)
+    
+    # 2. HANDLERS:
     'handlers': {
-        'file': {
+        'etl_file': {
             'level': 'INFO',
             'class': 'logging.FileHandler',
-            'filename': os.path.join(BASE_DIR,'logs', 'etl.log'),  # El archivo se creará en la raíz
+            'filename': os.path.join(LOGS_DIR, 'etl.log'),  # logs/etl.log
             'formatter': 'verbose',
+            'encoding': 'utf-8',
+        },
+        'ml_file': {
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': os.path.join(LOGS_DIR, 'ml.log'),   # logs/ml.log
+            'formatter': 'verbose',
+            'encoding': 'utf-8',
         },
         'console': {
             'level': 'DEBUG',
@@ -150,12 +163,18 @@ LOGGING = {
             'formatter': 'verbose',
         },
     },
-    # 3. LOGGERS: El "canal" que tú vas a llamar desde tu código
+
+    # 3. LOGGERS
     'loggers': {
         'etl_logger': {
-            'handlers': ['file', 'console'],
+            'handlers': ['etl_file', 'console'], 
             'level': 'INFO',
-            'propagate': True,
+            'propagate': False, # Evita duplicación de logs en la consola base de Django
+        },
+        'ml_logger': {
+            'handlers': ['ml_file', 'console'], 
+            'level': 'INFO',
+            'propagate': False,
         },
     },
 }
