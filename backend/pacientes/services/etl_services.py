@@ -173,9 +173,9 @@ class ETLService:
 
             for _, fila in df.iterrows():
                 es_critico = (
-                    fila['presion_sistolica'] > 140 or
-                    fila['presion_diastolica'] > 90 or
-                    fila['saturacion_oxigeno'] < 90
+                    fila['presion_sistolica'] > 180 or
+                    fila['presion_diastolica'] > 300 or
+                    fila['saturacion_oxigeno'] < 85
                 )
                 if es_critico:
                     criticos_detectados += 1

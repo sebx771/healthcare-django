@@ -35,5 +35,9 @@ class Paciente(models.Model):
     riesgo_enfermedad = models.CharField(max_length=50)
     fecha_consulta = models.DateField()
 
+    @property
+    def critico(self):
+       return self.presion_sistolica > 180 or self.glucosa > 300 or self.saturacion_oxigeno < 85 
+
     def __str__(self):
         return f"{self.nombres} {self.apellidos} - ID: {self.id_paciente}"
