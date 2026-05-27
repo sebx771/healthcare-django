@@ -25,3 +25,4 @@ env/
 # Archivos del sistema
 .DS_Store
 Thumbs.db
+/backend/logs/*.log
