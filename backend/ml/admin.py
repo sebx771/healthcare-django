@@ -6,8 +6,8 @@ from .models import MetricasModelos
 
 @admin.register(MetricasModelos)
 class MetricasModelosAdmin(admin.ModelAdmin):
-    list_display = ('id', 'nombre_modelo', 'accuracy', 'f1_score', 'created_at', 'ver_archivo_joblib')
-    list_filter = ('nombre_modelo', 'created_at')
+    list_display = ('id', 'nombre_modelo', 'accuracy','trained_at', 'f1_score', 'ver_archivo_joblib')
+    list_filter = ('trained_at',)
     search_fields = ('nombre_modelo', 'ruta_archivo_joblib')
 
     ordering = ('-id',)
