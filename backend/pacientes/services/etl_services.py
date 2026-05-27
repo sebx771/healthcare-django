@@ -28,7 +28,7 @@ class ETLService:
             tiempo_total = end - start
 
             ArchivoETL.objects.create(
-                nombre=ruta_archivo,
+                nombre=os.path.basename(ruta_archivo),
                 registros_procesados=registros_conteo,
                 tiempo_ejecucion=tiempo_total,
                 estado='EXITOSO'
@@ -38,7 +38,7 @@ class ETLService:
         except Exception as e:
             end = time()
             ArchivoETL.objects.create(
-                nombre=ruta_archivo,
+                nombre=os.path.basename(ruta_archivo),
                 registros_procesados=0,
                 tiempo_ejecucion=end - start,
                 estado='FALLIDO'
