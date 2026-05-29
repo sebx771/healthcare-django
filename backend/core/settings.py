@@ -40,7 +40,8 @@ INSTALLED_APPS = [
 
     'corsheaders',
     'pacientes',
-    'ml'
+    'ml',
+    'analytics'
 ]
 
 MIDDLEWARE = [
@@ -75,11 +76,24 @@ WSGI_APPLICATION = 'core.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
+from dotenv import load_dotenv
+import os
+load_dotenv()
 
+REDIS_URL= os.getenv('REDIS_URL')
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
+    }
+}
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        "LOCATION": os.getenv("REDIS_URL", "redis://127.0.0.1:6379/0"),
+        "OPTIONS": {
+
+        }
     }
 }
 
@@ -120,12 +134,9 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 
-# LOGGER PARA EL SEGUIMIENTO DEL PROCESO ETL (por implementar)
+# LOGGER PARA EL SEGUIMIENTO DEL PROCESO ETL , ML
 import os
-from pathlib import Path
 
-#  raíz para guardar el archivo de log
-BASE_DIR = Path(__file__).resolve().parent.parent
 LOGS_DIR = os.path.join(BASE_DIR, 'logs')
 os.makedirs(LOGS_DIR, exist_ok=True)
 
@@ -157,6 +168,13 @@ LOGGING = {
             'formatter': 'verbose',
             'encoding': 'utf-8',
         },
+        'an_file':{
+        'level': 'INFO',
+        'class': 'logging.FileHandler',
+        'filename': os.path.join(LOGS_DIR, 'an.log'),
+        'formatter': 'verbose',
+        'encoding': 'utf-8',
+        },
         'console': {
             'level': 'DEBUG',
             'class': 'logging.StreamHandler',
@@ -176,5 +194,10 @@ LOGGING = {
             'level': 'INFO',
             'propagate': False,
         },
+
+        'an_logger': {
+            'handlers': ['an_file','console'],
+            'level': 'INFO',
+        }
     },
 }
