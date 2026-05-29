@@ -33,6 +33,10 @@ class ETLService:
                 tiempo_ejecucion=tiempo_total,
                 estado='EXITOSO'
             )
+            # limpiamos el cache de redis para actualizarlo con los nuevos datos 
+            logger.info("")
+            from analytics.services import AnalyticsService
+            AnalyticsService.invalidar_cache_analitica()
 
             return exito
         except Exception as e:
