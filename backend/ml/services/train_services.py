@@ -1,4 +1,3 @@
-# En backend/ml/services/train_services.py
 import os
 from datetime import datetime
 import logging
@@ -25,13 +24,13 @@ class MLTrainerService:
         """
         logger.info(" Iniciando la extracción de registros clínicos desde el ORM...")
    
-        # 🛠️ AGREGAMOS 'riesgo_enfermedad' a la misma consulta
+        # 🛠️ CAMBIO: Se agrega 'actividad_fisica' a la extracción del ORM
         queryset = Paciente.objects.all().values(
             'edad', 'sexo', 'peso', 'altura', 'imc', 
             'presion_sistolica', 'presion_diastolica', 'frecuencia_cardiaca', 
             'glucosa', 'colesterol', 'saturacion_oxigeno', 'temperatura',
             'antecedentes_familiares', 'fumador', 'consumo_alcohol',
-            'riesgo_enfermedad' 
+            'actividad_fisica', 'riesgo_enfermedad' 
         )
         
         if not queryset.exists():
@@ -47,8 +46,11 @@ class MLTrainerService:
         df['fumador'] = df['fumador'].astype(int)
         df['consumo_alcohol'] = df['consumo_alcohol'].astype(int)
         
+        # 🛠️ CAMBIO: Mapeo numérico estricto para codificar la columna 'actividad_fisica'
+        mapeo_actividad = {'Sedentario': 0, 'Moderado': 1, 'Activo': 2}
+        df['actividad_fisica'] = df['actividad_fisica'].map(mapeo_actividad).fillna(0).astype(int)
+        
         # --- MAPEO DEL TARGET COMPLETAMENTE ALINEADO ---
-        # Como ya está en el df, lo normalizamos directamente en la misma fila
         s_target_limpio = (
             df['riesgo_enfermedad'].astype(str)
             .str.strip()
@@ -72,47 +74,39 @@ class MLTrainerService:
             
         df['target'] = df['target'].astype(int)
 
-        # 🛠️ SEPARAMOS MATRICES DROPEANDO AMBAS COLUMNAS
-        # Eliminamos la de texto original y la numérica del target para dejar solo los predictores
+        # CAMBIO: Al dropear las columnas del target, 'actividad_fisica' ahora se preserva en X como float
         X = df.drop(columns=['riesgo_enfermedad', 'target']).astype(float)
         y = df['target']
         
         logger.info("✅ Preprocesamiento completado de forma limpia. Variables codificadas numéricamente.")
         return X, y
+
     @classmethod
     def ejecutar_kfold_y_entrenar(cls):
         """
         Fase 2: Evaluación científica por K-Fold y serialización binaria del Bosque.
         """
         try:
-            # Ejecutamos la extracción de las matrices X e y
             X, y = cls.extraer_datos_orm()
             
             logger.info("🚀 Iniciando Validación Cruzada K-Fold (K=5 pliegues)...")
             kf = KFold(n_splits=5, shuffle=True, random_state=42)
             
-            # Listas para guardar las métricas resultantes de cada iteración del K-Fold
             acc_list, prec_list, rec_list, f1_list = [], [], [], []
-            
-            # Instanciamos el clasificador solicitado
             model = RandomForestClassifier(n_estimators=100, random_state=42)
             
-            # Bucle de validación cruzada paso a paso
             for iteracion, (train_idx, test_idx) in enumerate(kf.split(X), 1):
                 X_train, X_test = X.iloc[train_idx], X.iloc[test_idx]
                 y_train, y_test = y.iloc[train_idx], y.iloc[test_idx]
                 
-                # Entrenamos el clasificador sobre el pliegue de entrenamiento actual
                 model.fit(X_train, y_train)
                 preds = model.predict(X_test)
                 
-                # Evaluamos métricas con ponderación 'weighted' debido al desbalance multiclase
                 acc = accuracy_score(y_test, preds)
                 prec = precision_score(y_test, preds, average='weighted', zero_division=0)
                 rec = recall_score(y_test, preds, average='weighted', zero_division=0)
                 f1 = f1_score(y_test, preds, average='weighted', zero_division=0)
                 
-                # Añadimos los resultados a las listas históricas
                 acc_list.append(acc)
                 prec_list.append(prec)
                 rec_list.append(rec)
@@ -120,7 +114,6 @@ class MLTrainerService:
                 
                 logger.info(f"🌲 Pliegue {iteracion}/5 completado -> Acc: {acc:.4f} | Recall: {rec:.4f}")
             
-            # Calculamos los promedios finales exigidos por la rúbrica
             final_acc = float(np.mean(acc_list))
             final_prec = float(np.mean(prec_list))
             final_rec = float(np.mean(rec_list))
@@ -129,24 +122,21 @@ class MLTrainerService:
             logger.info("📊 --- PROMEDIOS FINALES DEL K-FOLD VALIDADOS ---")
             logger.info(f"Accuracy: {final_acc:.4f} | Precision: {final_prec:.4f} | Recall: {final_rec:.4f} | F1-Score: {final_f1:.4f}")
             
-            # --- ENTRENAMIENTO FINAL Y CONSTRUCCIÓN DE EVIDENCIA ---
             logger.info("🎯 Entrenando modelo definitivo con el 100% de la data clínica persistida...")
             model.fit(X, y)
             preds_totales = model.predict(X)
             matriz = confusion_matrix(y, preds_totales)
             
-            # --- EXPORTACIÓN A ARCHIVO BINARIO (.JOBLIB) ---
             dir_modelos = os.path.join(settings.BASE_DIR, 'ml', 'saved_models')
             os.makedirs(dir_modelos, exist_ok=True)
 
             timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
             nombre_versionado = f"modelo_riesgo_rf_{timestamp}.joblib"
-            ruta_final_joblib = os.path.join(dir_modelos,nombre_versionado )
+            ruta_final_joblib = os.path.join(dir_modelos, nombre_versionado)
             
             joblib.dump(model, ruta_final_joblib)
             logger.info(f"💾 Archivo binario serializado con éxito en: {ruta_final_joblib}")
             
-            # --- PERSISTENCIA DE EVIDENCIA EN BD MEDIANTE EL ORM ---
             logger.info("🗄️ Almacenando informe analítico e histórico de métricas en la base de datos...")
             MetricasModelos.objects.create(
                 nombre_modelo=f"RandomForestClassifier (K-Fold=5) {timestamp}",
