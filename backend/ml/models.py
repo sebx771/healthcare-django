@@ -10,6 +10,7 @@ class MetricasModelos(models.Model):
     precision = models.FloatField(verbose_name="Precision (Precisión)")
     recall = models.FloatField(verbose_name="Recall (Sensibilidad)")
     f1_score = models.FloatField(verbose_name="F1-Score")
+    default = models.BooleanField(default=False)
 
     # Evidencia Analitica
     matriz_confusion = models.TextField(
@@ -19,7 +20,13 @@ class MetricasModelos(models.Model):
     #  Ruta en disco del archivo binario .joblib empaquetado
     ruta_archivo_joblib = models.CharField(max_length=255)
 
-
+    def save(self, *args, **kwargs):
+        # si se marca un modelo como el 'default'
+        if self.default:
+            # Desactivamos todos los demás modelos de golpe antes de guardar el actual
+            MetricasModelos.objects.filter(default=True).exclude(pk=self.pk).update(default=False)
+        super().save(*args, **kwargs)
+        
     class Meta:
         verbose_name = "Métrica de Modelo"
         verbose_name_plural = "Métricas de Modelos"
