@@ -10,7 +10,7 @@ logger = logging.getLogger('etl_logger')
 class ETLService:
 
     @classmethod
-    def ejecutar_pipeline(cls, ruta_archivo):
+    def ejecutar_pipeline(cls, ruta_archivo, usuario=None):
         logger.info("==================================================")
         logger.info("🚀 INICIANDO PROCESO ETL - PIPELINE INTEGRADO")
         logger.info("==================================================")
@@ -31,7 +31,8 @@ class ETLService:
                 nombre=os.path.basename(ruta_archivo),
                 registros_procesados=registros_conteo,
                 tiempo_ejecucion=tiempo_total,
-                estado='EXITOSO'
+                estado='EXITOSO',
+                usuario=usuario
             )
             # limpiamos el cache de redis para actualizarlo con los nuevos datos 
             logger.info("")
@@ -45,15 +46,21 @@ class ETLService:
                 nombre=os.path.basename(ruta_archivo),
                 registros_procesados=0,
                 tiempo_ejecucion=end - start,
-                estado='FALLIDO'
+                estado='FALLIDO',
+                usuario=usuario
             )
             raise e
 
     @staticmethod
     def _extraer(ruta_archivo):
-        ruta_completa = os.path.abspath(os.path.join(settings.BASE_DIR, '..', 'datasets', ruta_archivo))
+        # primero nos aseguramos que la ruta no sea absoluta
+        if os.path.isabs(ruta_archivo) and os.path.exists(ruta_archivo):
+            ruta_completa = ruta_archivo
+        else:
+            ruta_completa = os.path.abspath(os.path.join(settings.BASE_DIR, '..', 'datasets', ruta_archivo))
+            
         if not os.path.exists(ruta_completa):
-            logger.error(f"❌ Archivo no encontrado en: {ruta_archivo}")
+            logger.error(f"❌ Archivo no encontrado en: {ruta_archivo} (Ruta resuelta: {ruta_completa})")
             return None
 
         ext = os.path.splitext(ruta_archivo)[1].lower()
