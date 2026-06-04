@@ -8,9 +8,9 @@ from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.permissions import IsAuthenticated
 
 from authentication.permissions import IsAdministrador, IsAnalista
-from .models import ArchivoETL
-from .serializers import ArchivoETLSerializer, UploadArchivoSerializer
-from .services import ETLService
+from ..models import ArchivoETL
+from ..serializers import ArchivoETLSerializer, UploadArchivoSerializer
+from ..services import ETLService
 
 class ETLRunView(APIView):
     permission_classes = [IsAuthenticated, IsAdministrador | IsAnalista]

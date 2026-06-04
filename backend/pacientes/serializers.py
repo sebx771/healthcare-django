@@ -2,7 +2,7 @@ import os
 import pandas as pd
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from .models import ArchivoETL
+from .models import ArchivoETL, Paciente
 
 class UsuarioSimpleSerializer(serializers.ModelSerializer):
     class Meta:
@@ -76,3 +76,11 @@ class UploadArchivoSerializer(serializers.Serializer):
         # Regresamos el cursor del archivo al principio para que pueda volver a ser leído por el ETL
         value.seek(0)
         return value
+
+
+class PacienteSerializer(serializers.ModelSerializer):
+    critico = serializers.ReadOnlyField()
+
+    class Meta:
+        model = Paciente
+        fields = '__all__'
