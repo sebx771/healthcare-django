@@ -41,10 +41,10 @@ Este módulo se encarga de la gestión de accesos, emisión de tokens y control 
 ---
 
 ## 👥 5. Módulo CRUD de Pacientes
-- [ ] `GET /api/pacientes/`
+- [x] `GET /api/pacientes/`
   - **Descripción:** Lista los registros de pacientes limpios en el sistema. Debe soportar filtros por término de búsqueda o categorías de riesgo.
   - **Permisos:** Administrador, Médico.
-- [ ] `GET /api/pacientes/<int:id>/`
+- [x] `GET /api/pacientes/<int:id>/`
   - **Descripción:** Obtiene el detalle completo del perfil clínico de un paciente específico utilizando su identificador.
   - **Permisos:** Administrador, Médico.
 
