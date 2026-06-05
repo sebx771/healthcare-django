@@ -2,14 +2,16 @@ import logging
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import IsAuthenticated
+
+from authentication.permissions import IsAdministrador, IsMedico
 from .serializers import PredictSerializer
 from .services.predict_services import PredictService
 
 logger = logging.getLogger('ml_logger')
 
 class PrediccionRiesgoAPIView(APIView):
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated, IsAdministrador | IsMedico]
 
     def post(self, request, *args, **kwargs):
         serializer = PredictSerializer(data=request.data)
