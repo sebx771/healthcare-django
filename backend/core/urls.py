@@ -23,4 +23,5 @@ urlpatterns = [
     path('api/ml/', include('ml.urls')),
     path('api/auth/', include('authentication.urls')),
     path('api/', include('pacientes.urls')),
+    path('api/reportes/', include('reportes.urls')),
 ]
