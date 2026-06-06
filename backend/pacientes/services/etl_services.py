@@ -226,9 +226,10 @@ class ETLService:
     def _cargar(df):
         try:
             # TODO: Implementar lógica para la creación-actualización de datos del modelo pacientes
-            Paciente.objects.all().delete()
+            #Paciente.objects.all().delete()
 
             pacientes_a_crear = []
+            pacientes_ya_existentes = []
             criticos_detectados = 0
 
             for _, fila in df.iterrows():
@@ -250,34 +251,44 @@ class ETLService:
                     if isinstance(val, bool): return val
                     return str(val).strip().lower() in ['true', '1', 'yes', 'si']
 
-                paciente = Paciente(
-                    id_paciente=int(fila['id_paciente']),
-                    nombres=nombres_val,
-                    apellidos=apellidos_val,
-                    edad=int(fila['edad']),
-                    sexo=str(fila['sexo']),
-                    peso=float(fila['peso']),
-                    altura=float(fila['altura']),
-                    imc=float(fila['imc']),
-                    presion_sistolica=int(fila['presion_sistolica']),
-                    presion_diastolica=int(fila['presion_diastolica']),
-                    frecuencia_cardiaca=int(fila['frecuencia_cardiaca']),
-                    saturacion_oxigeno=float(fila['saturacion_oxigeno']),
-                    temperatura=float(fila['temperatura']),
-                    glucosa=float(fila['glucosa']),
-                    colesterol=float(fila['colesterol']),
-                    antecedentes_familiares=safe_bool(fila.get('antecedentes_familiares', False)),
-                    fumador=safe_bool(fila.get('fumador', False)),
-                    consumo_alcohol=safe_bool(fila.get('consumo_alcohol', False)),
-                    actividad_fisica=str(fila.get('actividad_fisica', 'Sedentario'))[:50],
-                    diagnostico_preliminar=str(fila.get('diagnostico_preliminar', 'Sin Diagnóstico'))[:150],
-                    riesgo_enfermedad=str(fila.get('riesgo_enfermedad', 'Bajo'))[:50],
-                    fecha_consulta=fila.get('fecha_consulta') if pd.notna(fila.get('fecha_consulta')) else None
-                )
-                pacientes_a_crear.append(paciente)
+                datos_clinicos = {
+                    'id_paciente': int(fila['id_paciente']),
+                    'nombres': nombres_val,
+                    'apellidos': apellidos_val,
+                    'edad': int(fila['edad']),
+                    'sexo': str(fila['sexo']),
+                    'peso': float(fila['peso']),
+                    'altura': float(fila['altura']),
+                    'imc': float(fila['imc']),
+                    'presion_sistolica': int(fila['presion_sistolica']),
+                    'presion_diastolica': int(fila['presion_diastolica']),
+                    'frecuencia_cardiaca': int(fila['frecuencia_cardiaca']),
+                    'saturacion_oxigeno': float(fila['saturacion_oxigeno']),
+                    'temperatura': float(fila['temperatura']),
+                    'glucosa': float(fila['glucosa']),
+                    'colesterol': float(fila['colesterol']),
+                    'antecedentes_familiares': safe_bool(fila.get('antecedentes_familiares', False)),
+                    'fumador': safe_bool(fila.get('fumador', False)),
+                    'consumo_alcohol': safe_bool(fila.get('consumo_alcohol', False)),
+                    'actividad_fisica': str(fila.get('actividad_fisica', 'Sedentario'))[:50],
+                    'diagnostico_preliminar': str(fila.get('diagnostico_preliminar', 'Sin Diagnóstico'))[:150],
+                    'riesgo_enfermedad': str(fila.get('riesgo_enfermedad', 'Bajo'))[:50],
+                    'fecha_consulta': fila.get('fecha_consulta') if pd.notna(fila.get('fecha_consulta')) else None
+                }
 
-            Paciente.objects.bulk_create(pacientes_a_crear)
+               
+                exist = Paciente.objects.filter(**datos_clinicos).exists()
+                
+                if not exist:
+                    paciente_obj = Paciente(**datos_clinicos)
+                    pacientes_a_crear.append(paciente_obj)
+                else:
+                    pacientes_ya_existentes.append(datos_clinicos)
+
+            if pacientes_a_crear:
+                Paciente.objects.bulk_create(pacientes_a_crear)
             logger.info(f"✅ CARGA EXITOSA: {len(pacientes_a_crear)} registros limpios insertados en la BD.")
+            logger.info(f"‼️PACIENTES DUPLICADOS: {len(pacientes_ya_existentes)} registros de pacientes ya existentes en la BD")
             logger.info(f"🚨 Alertas críticas detectadas activas: {criticos_detectados}")
             return True
         except Exception as e:
