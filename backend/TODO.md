@@ -51,7 +51,7 @@ Este módulo se encarga de la gestión de accesos, emisión de tokens y control 
 ---
 
 ## 🖨️ 6. Módulo de Reportes y Exportación
-- [ ] `GET /api/reportes/export/`
+- [x] `GET /api/reportes/export/`
   - **Descripción:** Endpoint para generar y descargar reportes clínicos consolidados filtrados.
   - **Parámetros query aceptados:** `?format=pdf`, `?format=excel`, `?format=csv`.
   - **Permisos:** Administrador, Médico, Analista.
