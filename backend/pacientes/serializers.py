@@ -62,7 +62,7 @@ class UploadArchivoSerializer(serializers.Serializer):
 
         # Validamos columnas mínimas críticas (datos demográficos + signos vitales obligatorios)
         columnas_criticas = [
-            'id_paciente', 'nombres', 'apellidos', 'edad', 'sexo',
+            'nombres', 'apellidos', 'edad', 'sexo',
             'presion_sistolica', 'presion_diastolica', 'frecuencia_cardiaca',
             'saturacion_oxigeno', 'glucosa', 'temperatura'
         ]

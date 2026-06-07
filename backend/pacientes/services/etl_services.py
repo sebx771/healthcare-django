@@ -106,7 +106,7 @@ class ETLService:
     @staticmethod
     def _sub_deduplicar(df):
         filas_inicio = len(df)
-        df_out = df.drop_duplicates(subset=['id_paciente'], keep='first').copy()
+        df_out = df.drop_duplicates(subset=['nombres', 'apellidos', 'edad'], keep='first').copy()
         duplicados = filas_inicio - len(df_out)
         if duplicados > 0:
             logger.warning(f"⚠️ Removidos {duplicados} registros duplicados.")
@@ -225,8 +225,7 @@ class ETLService:
     @staticmethod
     def _cargar(df):
         try:
-            # TODO: Implementar lógica para la creación-actualización de datos del modelo pacientes
-            #Paciente.objects.all().delete()
+            
 
             pacientes_a_crear = []
             pacientes_ya_existentes = []
@@ -243,7 +242,7 @@ class ETLService:
                     criticos_detectados += 1
 
                 # Mapeo y saneamiento de datos administrativos/opcionales de texto
-                nombres_val = str(fila.get('nombres', fila.get('nombre', f"Paciente {fila['id_paciente']}")))[:150]
+                nombres_val = str(fila.get('nombres', 'Paciente Anónimo'))[:150]
                 apellidos_val = str(fila.get('apellidos', 'Anonimizado'))[:150]
                 
                 # Reemplazo de marcas de texto para booleanos por seguridad
@@ -252,7 +251,6 @@ class ETLService:
                     return str(val).strip().lower() in ['true', '1', 'yes', 'si']
 
                 datos_clinicos = {
-                    'id_paciente': int(fila['id_paciente']),
                     'nombres': nombres_val,
                     'apellidos': apellidos_val,
                     'edad': int(fila['edad']),
@@ -288,7 +286,7 @@ class ETLService:
             if pacientes_a_crear:
                 Paciente.objects.bulk_create(pacientes_a_crear)
             logger.info(f"✅ CARGA EXITOSA: {len(pacientes_a_crear)} registros limpios insertados en la BD.")
-            logger.info(f"‼️PACIENTES DUPLICADOS: {len(pacientes_ya_existentes)} registros de pacientes ya existentes en la BD")
+            logger.info(f"‼️ PACIENTES DUPLICADOS: {len(pacientes_ya_existentes)} registros de pacientes ya existentes en la BD")
             logger.info(f"🚨 Alertas críticas detectadas activas: {criticos_detectados}")
             return True
         except Exception as e:

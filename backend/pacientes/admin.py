@@ -3,8 +3,8 @@ from .models import Paciente , ArchivoETL
 
 @admin.register(Paciente)
 class PacienteAdmin(admin.ModelAdmin):
-    list_display = ('id_paciente', 'nombres', 'apellidos', 'edad', 'sexo', 'diagnostico_preliminar', 'riesgo_enfermedad')
-    search_fields = ('nombres', 'apellidos', 'id_paciente')
+    list_display = ('nombres', 'apellidos', 'edad', 'sexo', 'diagnostico_preliminar', 'riesgo_enfermedad')
+    search_fields = ('nombres', 'apellidos')
     list_filter = ('sexo', 'riesgo_enfermedad', 'actividad_fisica')
 
 @admin.register(ArchivoETL)
