@@ -53,8 +53,10 @@ Este módulo se encarga de la gestión de accesos, emisión de tokens y control 
 ## 🖨️ 6. Módulo de Reportes y Exportación
 - [x] `GET /api/reportes/export/`
   - **Descripción:** Endpoint para generar y descargar reportes clínicos consolidados filtrados.
-  - **Parámetros query aceptados:** `?format=pdf`, `?format=excel`, `?format=csv`.
+  - **Parámetros query aceptados:** `?export_format=pdf`, `?export_format=excel`, `?export_format=csv`.
+  - **Parámetros opcionales:** `search`, `riesgo`, `fecha_desde`, `fecha_hasta`.
   - **Permisos:** Administrador, Médico, Analista.
+  - **NOTA:** El parámetro debe ser `export_format` (NO `format`, que es reservado en DRF).
 
 ---
 

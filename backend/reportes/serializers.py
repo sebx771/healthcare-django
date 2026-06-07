@@ -2,7 +2,7 @@ from rest_framework import serializers
 from datetime import date
 
 class ReporteExportSerializer(serializers.Serializer):
-    format = serializers.ChoiceField(choices=['pdf', 'excel', 'csv'], required=True)
+    export_format = serializers.ChoiceField(choices=['pdf', 'excel', 'csv'], required=True)
     search = serializers.CharField(required=False, allow_blank=True)
     riesgo = serializers.CharField(required=False, allow_blank=True)
     fecha_desde = serializers.DateField(required=False)
