@@ -23,8 +23,7 @@ class ReportesExportAPIView(APIView):
         if search_term:
             queryset = queryset.filter(
                 Q(nombres__icontains=search_term) |
-                Q(apellidos__icontains=search_term) |
-                Q(id_paciente__icontains=search_term)
+                Q(apellidos__icontains=search_term)
             )
 
         riesgo = validated.get('riesgo')
