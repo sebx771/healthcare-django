@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HealthAnalytics IPS — Analítica Clínica</title>
+
+  <!-- Bootstrap 5 CSS -->
+  <link
+    rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+    integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
+    crossorigin="anonymous"
+  />
+
+  <!-- Bootstrap Icons -->
+  <link
+    rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
+  />
+
+  <!-- Google Fonts: Inter para cuerpo, Manrope para display -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Manrope:wght@600;700;800&display=swap"
+    rel="stylesheet"
+  />
+
+  <!-- Estilos personalizados -->
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+
+  <!-- ============================================================
+       PANTALLA DE LOGIN (visible por defecto hasta autenticación)
+  ============================================================ -->
+  <div id="login-screen" class="login-screen d-flex align-items-center justify-content-center">
+
+    <div class="login-card">
+      <!-- Marca -->
+      <div class="login-brand mb-4">
+        <div class="brand-icon">
+          <i class="bi bi-heart-pulse-fill"></i>
+        </div>
+        <div>
+          <span class="brand-name">HealthAnalytics</span>
+          <span class="brand-sub">IPS — Analítica Clínica</span>
+        </div>
+      </div>
+
+      <!-- Alerta de error (oculta por defecto) -->
+      <div id="login-error" class="alert alert-danger d-none" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+        <span id="login-error-msg">Credenciales incorrectas.</span>
+      </div>
+
+      <!-- Formulario -->
+      <div class="mb-3">
+        <label for="login-username" class="form-label">Usuario</label>
+        <input
+          type="text"
+          class="form-control sura-input"
+          id="login-username"
+          placeholder="nombre.usuario"
+          autocomplete="username"
+        />
+      </div>
+      <div class="mb-4">
+        <label for="login-password" class="form-label">Contraseña</label>
+        <div class="input-group">
+          <input
+            type="password"
+            class="form-control sura-input"
+            id="login-password"
+            placeholder="••••••••"
+            autocomplete="current-password"
+          />
+          <button class="btn btn-outline-secondary" type="button" id="toggle-password" tabindex="-1">
+            <i class="bi bi-eye" id="toggle-icon"></i>
+          </button>
+        </div>
+      </div>
+      <button class="btn btn-sura-primary w-100" id="btn-login">
+        <span id="login-btn-text">Ingresar</span>
+        <span id="login-spinner" class="spinner-border spinner-border-sm ms-2 d-none" role="status"></span>
+      </button>
+
+      <p class="login-footer mt-4">
+        <i class="bi bi-shield-lock me-1"></i>
+        Acceso restringido — Personal autorizado únicamente
+      </p>
+    </div>
+  </div>
+
+
+  <!-- ============================================================
+       APLICACIÓN PRINCIPAL (oculta hasta autenticación exitosa)
+  ============================================================ -->
+  <div id="app" class="app-shell d-none">
+
+    <!-- ── SIDEBAR ─────────────────────────────────────────── -->
+    <aside id="sidebar" class="sidebar">
+
+      <!-- Cabecera de marca -->
+      <div class="sidebar-brand">
+        <div class="brand-icon-sm">
+          <i class="bi bi-heart-pulse-fill"></i>
+        </div>
+        <div class="sidebar-brand-text">
+          <span class="sidebar-brand-name">HealthAnalytics</span>
+          <span class="sidebar-brand-sub">IPS</span>
+        </div>
+        <!-- Toggle móvil -->
+        <button class="sidebar-close d-lg-none" id="sidebar-close" aria-label="Cerrar menú">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
+
+      <!-- Perfil de usuario -->
+      <div class="sidebar-user">
+        <div class="user-avatar" id="user-avatar-initials">AD</div>
+        <div class="user-info">
+          <span class="user-name" id="sidebar-user-name">Administrador</span>
+          <span class="user-role badge-role" id="sidebar-user-role">Admin</span>
+        </div>
+      </div>
+
+      <!-- Separador -->
+      <hr class="sidebar-divider" />
+
+      <!-- Navegación principal -->
+      <nav class="sidebar-nav" aria-label="Navegación principal">
+        <ul class="nav flex-column" id="main-nav">
+          <li class="nav-item">
+            <a class="nav-link sidebar-link active" data-view="dashboard" href="#dashboard">
+              <i class="bi bi-speedometer2 nav-icon"></i>
+              <span>Dashboard</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link sidebar-link" data-view="pacientes" href="#pacientes">
+              <i class="bi bi-people nav-icon"></i>
+              <span>Pacientes</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link sidebar-link" data-view="etl" href="#etl">
+              <i class="bi bi-arrow-left-right nav-icon"></i>
+              <span>ETL</span>
+              <span class="nav-badge ms-auto" id="etl-badge"></span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link sidebar-link" data-view="reportes" href="#reportes">
+              <i class="bi bi-file-earmark-bar-graph nav-icon"></i>
+              <span>Reportes</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link sidebar-link" data-view="ml" href="#ml">
+              <i class="bi bi-cpu nav-icon"></i>
+              <span>Predicción ML</span>
+              <span class="nav-tag ms-auto">IA</span>
+            </a>
+          </li>
+        </ul>
+      </nav>
+
+      <!-- Pie del sidebar -->
+      <div class="sidebar-footer mt-auto">
+        <hr class="sidebar-divider" />
+        <button class="btn sidebar-link w-100 text-start" id="btn-logout">
+          <i class="bi bi-box-arrow-right nav-icon"></i>
+          <span>Cerrar sesión</span>
+        </button>
+      </div>
+    </aside>
+
+
+    <!-- ── CONTENIDO PRINCIPAL ─────────────────────────────── -->
+    <div class="main-wrapper">
+
+      <!-- Topbar -->
+      <header class="topbar">
+        <!-- Toggle sidebar móvil -->
+        <button class="btn topbar-toggle d-lg-none" id="sidebar-toggle" aria-label="Abrir menú">
+          <i class="bi bi-list"></i>
+        </button>
+
+        <!-- Título de la vista activa -->
+        <div class="topbar-title">
+          <h1 id="page-title">Dashboard</h1>
+          <nav aria-label="breadcrumb" class="d-none d-md-block">
+            <ol class="breadcrumb mb-0">
+              <li class="breadcrumb-item"><a href="#dashboard">Inicio</a></li>
+              <li class="breadcrumb-item active" id="breadcrumb-current" aria-current="page">Dashboard</li>
+            </ol>
+          </nav>
+        </div>
+
+        <!-- Acciones globales -->
+        <div class="topbar-actions ms-auto d-flex align-items-center gap-3">
+          <!-- Indicador de conexión -->
+          <span class="status-indicator" id="api-status" title="Estado del servidor">
+            <span class="status-dot status-dot--ok"></span>
+            <span class="status-label d-none d-md-inline">API activa</span>
+          </span>
+
+          <!-- Reloj en tiempo real -->
+          <span class="topbar-clock d-none d-md-inline" id="topbar-clock"></span>
+        </div>
+      </header>
+
+      <!-- Área de contenido dinámico -->
+      <main id="main-content" class="main-content" role="main">
+        <!-- El contenido de cada módulo se inyecta aquí por JS -->
+        <div id="view-loader" class="view-loader d-none">
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Cargando...</span>
+          </div>
+          <span class="ms-3 text-muted">Cargando módulo…</span>
+        </div>
+      </main>
+    </div><!-- /.main-wrapper -->
+
+  </div><!-- /#app -->
+
+  <!-- Overlay para sidebar móvil -->
+  <div id="sidebar-overlay" class="sidebar-overlay d-none"></div>
+
+
+  <!-- ============================================================
+       TOAST DE NOTIFICACIONES (global)
+  ============================================================ -->
+  <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index:9999">
+    <div id="global-toast" class="toast align-items-center border-0" role="alert" aria-live="assertive" aria-atomic="true">
+      <div class="d-flex">
+        <div class="toast-body" id="toast-message">Notificación</div>
+        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Cerrar"></button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Bootstrap 5 JS Bundle -->
+  <script
+    src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-YvpcrYf0tY3lHB60NNkmXc4s9bIOgUxi8T/jzmEpNQgFJJLSRUeVXkJY5oRDHKa"
+    crossorigin="anonymous"
+  ></script>
+
+  <!-- Módulos JS de la aplicación -->
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/dashboard.js"></script>
+  <script src="js/pacientes.js"></script>
+  <script src="js/ml.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
