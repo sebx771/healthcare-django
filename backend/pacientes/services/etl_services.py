@@ -225,68 +225,61 @@ class ETLService:
     @staticmethod
     def _cargar(df):
         try:
-            
-
             pacientes_a_crear = []
-            pacientes_ya_existentes = []
             criticos_detectados = 0
 
-            for _, fila in df.iterrows():
-                # Detección preventiva de alertas de emergencias clínicas
+            # 1. Pre-cargar claves existentes en memoria (1 sola consulta a la BD)
+            # Esto evita hacer N consultas con .exists() por cada fila
+            claves_existentes = set(
+                Paciente.objects.values_list('nombres', 'apellidos', 'edad')
+            )
+
+            # 2. Usar itertuples() en lugar de iterrows() (mucho más rápido en DataFrames grandes)
+            for fila in df.itertuples(index=False):
                 es_critico = (
-                    fila['presion_sistolica'] > 180 or
-                    fila['presion_diastolica'] > 120 or  # Ajustado a un umbral clínico real
-                    fila['saturacion_oxigeno'] < 85
+                    getattr(fila, 'presion_sistolica', 0) > 180 or
+                    getattr(fila, 'presion_diastolica', 0) > 120 or
+                    getattr(fila, 'saturacion_oxigeno', 0) < 85
                 )
                 if es_critico:
                     criticos_detectados += 1
 
-                # Mapeo y saneamiento de datos administrativos/opcionales de texto
-                nombres_val = str(fila.get('nombres', 'Paciente Anónimo'))[:150]
-                apellidos_val = str(fila.get('apellidos', 'Anonimizado'))[:150]
-                
-                # Reemplazo de marcas de texto para booleanos por seguridad
                 def safe_bool(val):
                     if isinstance(val, bool): return val
                     return str(val).strip().lower() in ['true', '1', 'yes', 'si']
 
                 datos_clinicos = {
-                    'nombres': nombres_val,
-                    'apellidos': apellidos_val,
-                    'edad': int(fila['edad']),
-                    'sexo': str(fila['sexo']),
-                    'peso': float(fila['peso']),
-                    'altura': float(fila['altura']),
-                    'imc': float(fila['imc']),
-                    'presion_sistolica': int(fila['presion_sistolica']),
-                    'presion_diastolica': int(fila['presion_diastolica']),
-                    'frecuencia_cardiaca': int(fila['frecuencia_cardiaca']),
-                    'saturacion_oxigeno': float(fila['saturacion_oxigeno']),
-                    'temperatura': float(fila['temperatura']),
-                    'glucosa': float(fila['glucosa']),
-                    'colesterol': float(fila['colesterol']),
-                    'antecedentes_familiares': safe_bool(fila.get('antecedentes_familiares', False)),
-                    'fumador': safe_bool(fila.get('fumador', False)),
-                    'consumo_alcohol': safe_bool(fila.get('consumo_alcohol', False)),
-                    'actividad_fisica': str(fila.get('actividad_fisica', 'Sedentario'))[:50],
-                    'diagnostico_preliminar': str(fila.get('diagnostico_preliminar', 'Sin Diagnóstico'))[:150],
-                    'riesgo_enfermedad': str(fila.get('riesgo_enfermedad', 'Bajo'))[:50],
-                    'fecha_consulta': fila.get('fecha_consulta') if pd.notna(fila.get('fecha_consulta')) else None
+                    'nombres': str(getattr(fila, 'nombres', 'Paciente Anónimo'))[:150],
+                    'apellidos': str(getattr(fila, 'apellidos', 'Anonimizado'))[:150],
+                    'edad': int(getattr(fila, 'edad', 0)),
+                    'sexo': str(getattr(fila, 'sexo', 'M'))[:1],
+                    'peso': float(getattr(fila, 'peso', 0) or 0),
+                    'altura': float(getattr(fila, 'altura', 0) or 0),
+                    'imc': float(getattr(fila, 'imc', 0) or 0),
+                    'presion_sistolica': int(getattr(fila, 'presion_sistolica', 0) or 0),
+                    'presion_diastolica': int(getattr(fila, 'presion_diastolica', 0) or 0),
+                    'frecuencia_cardiaca': int(getattr(fila, 'frecuencia_cardiaca', 0) or 0),
+                    'saturacion_oxigeno': float(getattr(fila, 'saturacion_oxigeno', 0) or 0),
+                    'temperatura': float(getattr(fila, 'temperatura', 0) or 0),
+                    'glucosa': float(getattr(fila, 'glucosa', 0) or 0),
+                    'colesterol': float(getattr(fila, 'colesterol', 0) or 0),
+                    'antecedentes_familiares': safe_bool(getattr(fila, 'antecedentes_familiares', False)),
+                    'fumador': safe_bool(getattr(fila, 'fumador', False)),
+                    'consumo_alcohol': safe_bool(getattr(fila, 'consumo_alcohol', False)),
+                    'actividad_fisica': str(getattr(fila, 'actividad_fisica', 'Sedentario'))[:50],
+                    'diagnostico_preliminar': str(getattr(fila, 'diagnostico_preliminar', 'Sin Diagnóstico'))[:150],
+                    'riesgo_enfermedad': str(getattr(fila, 'riesgo_enfermedad', 'Bajo'))[:50],
+                    'fecha_consulta': getattr(fila, 'fecha_consulta', None)
                 }
 
-               
-                exist = Paciente.objects.filter(**datos_clinicos).exists()
-                
-                if not exist:
-                    paciente_obj = Paciente(**datos_clinicos)
-                    pacientes_a_crear.append(paciente_obj)
-                else:
-                    pacientes_ya_existentes.append(datos_clinicos)
+                clave = (datos_clinicos['nombres'], datos_clinicos['apellidos'], datos_clinicos['edad'])
+                if clave not in claves_existentes:
+                    pacientes_a_crear.append(Paciente(**datos_clinicos))
+                    claves_existentes.add(clave)
 
             if pacientes_a_crear:
                 Paciente.objects.bulk_create(pacientes_a_crear)
             logger.info(f"✅ CARGA EXITOSA: {len(pacientes_a_crear)} registros limpios insertados en la BD.")
-            logger.info(f"‼️ PACIENTES DUPLICADOS: {len(pacientes_ya_existentes)} registros de pacientes ya existentes en la BD")
             logger.info(f"🚨 Alertas críticas detectadas activas: {criticos_detectados}")
             return True
         except Exception as e:
