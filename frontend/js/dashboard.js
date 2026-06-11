@@ -1,108 +1,115 @@
-/**
- * dashboard.js — Panel de Control Analítico
- * HealthAnalytics IPS
- *
- * Etapa 1: Renderiza una vista de bienvenida con KPIs de placeholder.
- * Etapa 4 integrará Chart.js y los datos reales del endpoint /api/dashboard/kpis/.
- */
+let chartRiesgo = null;
+let chartEdad = null;
 
-const DashboardModule = (() => {
+const RIESGO_COLORS = {
+  Bajo:    'rgba(25,135,84,0.8)',
+  Medio:   'rgba(255,193,7,0.85)',
+  Alto:    'rgba(253,126,20,0.85)',
+  Crítico: 'rgba(220,53,69,0.85)',
+};
 
-  function render() {
-    const user = window.Auth?.getUser();
-    const rol  = user?.rol || 'Usuario';
+const RIESGO_BORDER = {
+  Bajo:    '#198754',
+  Medio:   '#FFC107',
+  Alto:    '#FD7E14',
+  Crítico: '#DC3545',
+};
 
-    return `
-    <div class="view-enter">
+function renderKpiCards(data) {
+  const container = document.getElementById('kpi-cards');
+  const kpis = [
+    { label: 'Total Registros',      value: data.total_registros     ?? '—', icon: 'bi-people-fill',        color: '#0033A0' },
+    { label: 'Pacientes Críticos',   value: data.pacientes_criticos   ?? '—', icon: 'bi-exclamation-triangle-fill', color: '#DC3545' },
+    { label: 'Riesgo Promedio',      value: data.riesgo_promedio_poblacional ?? '—', icon: 'bi-activity',           color: '#FD7E14' },
+    { label: 'Pacientes Hipertensos', value: data.pacientes_hipertensos ?? '—', icon: 'bi-heart-pulse-fill', color: '#E91E63' },
+    { label: 'Pacientes Diabéticos', value: data.pacientes_diabeticos ?? '—', icon: 'bi-droplet-fill', color: '#05C3DE' },
+    { label: 'Pacientes Fumadores',  value: data.pacientes_fumadores  ?? '—', icon: 'bi-cup-straw-fill', color: '#6f42c1' },
+  ];
 
-      <!-- Cabecera de bienvenida -->
-      <div class="d-flex align-items-center justify-content-between mb-4">
-        <div>
-          <h2 class="mb-1" style="font-family:'Manrope',sans-serif;font-weight:800;color:var(--sura-primary-dark)">
-            Bienvenido de nuevo
-          </h2>
-          <p class="mb-0 text-muted" style="font-size:.875rem">
-            <i class="bi bi-calendar3 me-1"></i>
-            ${new Date().toLocaleDateString('es-CO', { weekday:'long', year:'numeric', month:'long', day:'numeric' })}
-          </p>
-        </div>
-        <span class="risk-badge risk-badge--low">
-          <i class="bi bi-shield-check me-1"></i> Sistema operativo
-        </span>
-      </div>
-
-      <!-- KPI Cards (placeholder) -->
-      <div class="row g-3 mb-4">
-        ${_kpiCard('Total Pacientes', '—', 'bi-people-fill', 'primary', 'Pendiente conexión API')}
-        ${_kpiCard('Pacientes Críticos', '—', 'bi-exclamation-octagon-fill', 'critical', 'Riesgo crítico activo')}
-        ${_kpiCard('Hipertensos', '—', 'bi-activity', 'accent', 'Diagnóstico activo')}
-        ${_kpiCard('Último ETL', '—', 'bi-arrow-repeat', 'success', 'Procesos completados')}
-      </div>
-
-      <!-- Contenido secundario -->
-      <div class="row g-3">
-        <!-- Gráfica placeholder -->
-        <div class="col-lg-8">
-          <div class="sura-card h-100">
-            <div class="sura-card-header">
-              <h3 class="sura-card-title">
-                <i class="bi bi-bar-chart-line me-2" style="color:var(--sura-accent)"></i>
-                Distribución de Riesgo
-              </h3>
-              <span class="badge" style="background:var(--sura-bg-neutral);color:var(--sura-text-muted);font-size:.7rem">
-                Disponible en Etapa 4
-              </span>
-            </div>
-            <div class="empty-state">
-              <i class="bi bi-bar-chart-line empty-state__icon"></i>
-              <p class="empty-state__title">Gráficas en desarrollo</p>
-              <p class="empty-state__text">
-                La integración de Chart.js y los datos analíticos estará disponible en la Etapa 4.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <!-- Actividad reciente placeholder -->
-        <div class="col-lg-4">
-          <div class="sura-card h-100">
-            <div class="sura-card-header">
-              <h3 class="sura-card-title">
-                <i class="bi bi-clock-history me-2" style="color:var(--sura-accent)"></i>
-                Actividad Reciente
-              </h3>
-            </div>
-            <div class="empty-state">
-              <i class="bi bi-clock empty-state__icon"></i>
-              <p class="empty-state__title">Sin actividad registrada</p>
-              <p class="empty-state__text">Los eventos recientes aparecerán aquí.</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-    </div>`;
-  }
-
-  function _kpiCard(label, value, icon, variant, sub) {
-    return `
-    <div class="col-6 col-xl-3">
-      <div class="kpi-card">
+  container.innerHTML = kpis.map(k => `
+    <div class="col-6 col-md-4 col-xl-2">
+      <div class="card kpi-card h-100" style="border-left-color:${k.color}">
         <div class="d-flex align-items-start justify-content-between">
-          <span class="kpi-card__label">${label}</span>
-          <div class="kpi-card__icon kpi-card__icon--${variant}">
-            <i class="bi ${icon}"></i>
+          <div>
+            <div class="kpi-label mb-1">${k.label}</div>
+            <div class="kpi-value" style="color:${k.color}">${k.value}</div>
           </div>
-        </div>
-        <div class="kpi-card__value">${value}</div>
-        <div class="kpi-card__delta kpi-card__delta--flat">
-          <i class="bi bi-info-circle"></i> ${sub}
+          <i class="bi ${k.icon} kpi-icon" style="color:${k.color}; opacity:0.18; font-size:2rem;"></i>
         </div>
       </div>
-    </div>`;
+    </div>
+  `).join('');
+}
+
+function initCharts(datos) {
+  destroyCharts();
+
+  const ctxRiesgo     = document.getElementById('chart-riesgo');
+  const ctxEdad       = document.getElementById('chart-edad');
+
+  const riesgoData = datos?.kpis_globales?.distribucion_riesgo || {};
+  chartRiesgo = new Chart(ctxRiesgo, {
+    type: 'doughnut',
+    data: {
+      labels: Object.keys(riesgoData),
+      datasets: [{
+        data: Object.values(riesgoData),
+        backgroundColor: Object.keys(riesgoData).map(k => RIESGO_COLORS[k] || 'rgba(108,117,125,0.7)'),
+        borderColor: Object.keys(riesgoData).map(k => RIESGO_BORDER[k] || '#6c757d'),
+        borderWidth: 2,
+      }],
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { position: 'bottom', labels: { padding: 16, font: { size: 12 } } },
+      },
+      cutout: '60%',
+    },
+  });
+
+  const edadData = datos?.segmentaciones?.por_edad || {};
+  chartEdad = new Chart(ctxEdad, {
+    type: 'bar',
+    data: {
+      labels: Object.keys(edadData),
+      datasets: [{
+        label: 'Pacientes',
+        data: Object.values(edadData),
+        backgroundColor: 'rgba(0,51,160,0.7)',
+        borderColor: '#0033A0',
+        borderWidth: 1,
+        borderRadius: 4,
+      }],
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } },
+        x: { grid: { display: false } },
+      },
+    },
+  });
+}
+
+function destroyCharts() {
+  if (chartRiesgo)    { chartRiesgo.destroy();    chartRiesgo    = null; }
+  if (chartEdad)      { chartEdad.destroy();      chartEdad      = null; }
+}
+
+async function loadDashboard() {
+  try {
+    const res = await fetchWithAuth('/api/dashboard/kpis/');
+    if (!res.ok) throw new Error(`Error ${res.status}`);
+    const data = await res.json();
+    const analytics = data.datos || data;
+    renderKpiCards(analytics.kpis_globales || analytics);
+    initCharts(analytics);
+  } catch (err) {
+    document.getElementById('kpi-cards').innerHTML = `
+      <div class="col-12">
+        <div class="alert alert-danger"><i class="bi bi-exclamation-triangle me-2"></i>${err.message}</div>
+      </div>`;
   }
-
-  return { render };
-})();
-
-window.DashboardModule = DashboardModule;
+}
