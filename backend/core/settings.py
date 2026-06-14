@@ -31,7 +31,7 @@ DATABASE_URL = os.getenv('DATABASE_URL')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = os.environ.get("HOST", "localhost").split(",")
 CORS_ALLOWED_ORIGINS= [
    'http://localhost:5500'
 ]
