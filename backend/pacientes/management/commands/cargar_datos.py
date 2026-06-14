@@ -18,7 +18,7 @@ class Command(BaseCommand):
         
         nombre_archivo = options['nombre_archivo']
      
-        ruta_datasets = os.path.join(settings.BASE_DIR, '..', 'datasets')
+        ruta_datasets = os.path.join(settings.BASE_DIR,'datasets')
         ruta_final_archivo = os.path.join(ruta_datasets, nombre_archivo)
         
         

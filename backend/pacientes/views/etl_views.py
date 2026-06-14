@@ -54,7 +54,7 @@ class PacientesUploadView(APIView):
         nombre_guardado = f"upload_{timestamp}_{uploaded_file.name}"
         
         # Guardar en la carpeta datasets/
-        ruta_datasets = os.path.abspath(os.path.join(settings.BASE_DIR, '..', 'datasets'))
+        ruta_datasets = os.path.abspath(os.path.join(settings.BASE_DIR, 'datasets'))
         os.makedirs(ruta_datasets, exist_ok=True)
         
         fs = FileSystemStorage(location=ruta_datasets)

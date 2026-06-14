@@ -57,7 +57,7 @@ class ETLService:
         if os.path.isabs(ruta_archivo) and os.path.exists(ruta_archivo):
             ruta_completa = ruta_archivo
         else:
-            ruta_completa = os.path.abspath(os.path.join(settings.BASE_DIR, '..', 'datasets', ruta_archivo))
+            ruta_completa = os.path.abspath(os.path.join(settings.BASE_DIR, 'datasets', ruta_archivo))
             
         if not os.path.exists(ruta_completa):
             logger.error(f"❌ Archivo no encontrado en: {ruta_archivo} (Ruta resuelta: {ruta_completa})")
