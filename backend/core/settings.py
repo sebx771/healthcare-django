@@ -27,13 +27,14 @@ load_dotenv()
 REDIS_URL= os.getenv('REDIS_URL')
 SECRET_KEY = os.getenv('SECRET_KEY')
 DATABASE_URL = os.getenv('DATABASE_URL')
+ORIGIN= os.getenv('ORIGIN')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
 ALLOWED_HOSTS = os.environ.get("HOST", "localhost").split(",")
 CORS_ALLOWED_ORIGINS= [
-   'http://localhost:5500'
+   ORIGIN
 ]
 
 CORS_ALLOW_ALL_ORIGINS = True
