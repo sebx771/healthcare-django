@@ -56,14 +56,10 @@ window.showApp = function () {
   showSection('dashboard');
 };
 
-window.showLogin = function () {
+function showLogin() {
   document.getElementById('view-app').classList.add('d-none');
   document.getElementById('view-login').classList.remove('d-none');
   document.getElementById('form-login').reset();
-};
-
-function isLoggedIn() {
-  return !!localStorage.getItem('access_token');
 }
 
 // ── SIDEBAR ──────────────────────────────────────────────────────────────
@@ -231,17 +227,11 @@ function initLogout() {
 // ── BOOT ──────────────────────────────────────────────────────────────────
 
 document.addEventListener('DOMContentLoaded', () => {
-  initAuth();
   initSidebar();
   initPacientes();
   initMl();
   initReportes();
   initEtl();
   initLogout();
-
-  if (isLoggedIn()) {
-    window.showApp();
-  } else {
-    window.showLogin();
-  }
+  window.showLogin();
 });

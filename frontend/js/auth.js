@@ -53,31 +53,63 @@ function logout() {
   window.showLogin();
 }
 
-function initAuth() {
+function setLoginLoading(isLoading) {
   const form = document.getElementById('form-login');
   const btnText = document.getElementById('btn-login-text');
   const btnSpinner = document.getElementById('btn-login-spinner');
+  const submitBtn = form ? form.querySelector('button[type=submit]') : null;
+
+  if (btnText) btnText.textContent = isLoading ? 'Verificando...' : 'Iniciar Sesión';
+  if (btnSpinner) btnSpinner.classList.toggle('d-none', !isLoading);
+  if (submitBtn) submitBtn.disabled = isLoading;
+}
+
+function showLoginError(message) {
   const errorDiv = document.getElementById('login-error');
+  if (!errorDiv) return;
+  errorDiv.textContent = message;
+  errorDiv.classList.remove('d-none');
+}
+
+function getLoginTokens(data) {
+  if (!data || typeof data !== 'object') return null;
+
+  const access = data.access_token || data.access || '';
+  const refresh = data.refresh_token || data.refresh || '';
+
+  if (!access || !refresh) return null;
+
+  return { access, refresh };
+}
+
+function initAuth() {
+  const form = document.getElementById('form-login');
+  if (!form) return;
+
   const togglePwd = document.getElementById('toggle-password');
   const pwdInput = document.getElementById('login-password');
 
-  togglePwd.addEventListener('click', () => {
-    const isText = pwdInput.type === 'text';
-    pwdInput.type = isText ? 'password' : 'text';
-    togglePwd.querySelector('i').className = isText ? 'bi bi-eye' : 'bi bi-eye-slash';
-  });
+  if (togglePwd && pwdInput) {
+    togglePwd.addEventListener('click', () => {
+      const isText = pwdInput.type === 'text';
+      pwdInput.type = isText ? 'password' : 'text';
+      togglePwd.querySelector('i').className = isText ? 'bi bi-eye' : 'bi bi-eye-slash';
+    });
+  }
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
-    errorDiv.classList.add('d-none');
-    btnText.textContent = 'Verificando...';
-    btnSpinner.classList.remove('d-none');
-    form.querySelector('button[type=submit]').disabled = true;
-
-    const username = document.getElementById('login-username').value.trim();
-    const password = document.getElementById('login-password').value;
+    showLoginError('');
+    setLoginLoading(true);
 
     try {
+      const username = document.getElementById('login-username').value.trim();
+      const password = document.getElementById('login-password').value;
+
+      if (!username || !password) {
+        throw new Error('Credenciales inválidas');
+      }
+
       const res = await fetch(`${API_BASE_URL}/api/auth/login/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -85,24 +117,30 @@ function initAuth() {
       });
 
       if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.detail || err.message || 'Credenciales inválidas');
+        await res.json().catch(() => ({}));
+        throw new Error('Credenciales inválidas');
       }
 
-      const data = await res.json();
-      localStorage.setItem('access_token', data.access_token || data.access || '');
-      localStorage.setItem('refresh_token', data.refresh_token || data.refresh || '');
+      const data = await res.json().catch(() => null);
+      const tokens = getLoginTokens(data);
+
+      if (!tokens) {
+        throw new Error('Credenciales inválidas');
+      }
+
+      localStorage.setItem('access_token', tokens.access);
+      localStorage.setItem('refresh_token', tokens.refresh);
       localStorage.setItem('rol', data.rol || data.role || 'Médico');
       localStorage.setItem('username', data.username || username);
 
       window.showApp();
     } catch (err) {
-      errorDiv.textContent = err.message || 'Error al iniciar sesión';
-      errorDiv.classList.remove('d-none');
+      showLoginError(err.message || 'No se pudo iniciar sesión. Verifique sus credenciales o intente nuevamente.');
+      window.showLogin();
     } finally {
-      btnText.textContent = 'Iniciar Sesión';
-      btnSpinner.classList.add('d-none');
-      form.querySelector('button[type=submit]').disabled = false;
+      setLoginLoading(false);
     }
   });
 }
+
+document.addEventListener('DOMContentLoaded', initAuth);
