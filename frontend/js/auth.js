@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://localhost:8000';
+const API_BASE_URL = 'https://healthcare-django-mz3c.onrender.com';
 
 async function fetchWithAuth(url, options = {}) {
   const token = localStorage.getItem('access_token');
