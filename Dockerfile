@@ -23,7 +23,7 @@ COPY requirements.txt /app/
 RUN pip install --no-cache-dir -r requirements.txt
 
 # 5. Copiar el resto del proyecto
-COPY . /app/
+COPY /backend/ /app/
 
 EXPOSE 8000
 
