@@ -20,7 +20,7 @@ RUN pip install --no-cache-dir --upgrade pip setuptools wheel
 
 # 4. Copiar e instalar requerimientos
 COPY requirements.txt /app/
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r /backend/requirements.txt
 
 # 5. Copiar el resto del proyecto
 COPY /backend/ /app/
