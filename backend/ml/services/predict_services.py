@@ -2,6 +2,9 @@ import joblib
 import pandas as pd
 from pathlib import Path
 from django.conf import settings
+import logging
+
+logger = logging.getLogger('ml_logger')
 
 class PredictService:
     _model = None
@@ -25,6 +28,9 @@ class PredictService:
         # 2. Definición absoluta y limpia de la ruta usando Pathlib para evitar fallos de slashes
         carpeta_modelos = Path(settings.BASE_DIR) / 'ml' / 'saved_models'
         ruta_dinamica = carpeta_modelos / nombre_archivo
+        logger.error(f"BASE_DIR={settings.BASE_DIR}")
+        logger.error(f"CARPETA={carpeta_modelos}")
+        logger.error(f"EXISTE_CARPETA={carpeta_modelos.exists()}")
         
         # 3. Fallback: Búsqueda manual iterativa en Windows
         if not ruta_dinamica.exists():
