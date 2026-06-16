@@ -1,6 +1,6 @@
 import joblib
 import pandas as pd
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 from django.conf import settings
 import logging
 
@@ -23,18 +23,11 @@ class PredictService:
             raise FileNotFoundError("No se encontró ningún modelo entrenado.")
         
         # Extraemos el nombre puro del archivo abstrayendo el formato de la ruta
-        nombre_archivo = Path(modelo_db.ruta_archivo_joblib).name
+        nombre_archivo = PureWindowsPath(modelo_db.ruta_archivo_joblib).name
         
-        # 2. Definición absoluta y limpia de la ruta usando Pathlib para evitar fallos de slashes
         carpeta_modelos = Path(settings.BASE_DIR) / 'ml' / 'saved_models'
-        logger.error(f"Ruta guardada BD: {modelo_db.ruta_archivo_joblib}")
-
-        nombre_archivo = Path(modelo_db.ruta_archivo_joblib).name
-
-        logger.error(f"Archivo esperado: {nombre_archivo}")
-
+        
         archivos = [f.name for f in carpeta_modelos.iterdir()]
-        logger.error(f"Archivos encontrados: {archivos}")
         
         ruta_dinamica = carpeta_modelos / nombre_archivo
         # 3. Fallback: Búsqueda manual iterativa en Windows

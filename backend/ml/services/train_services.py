@@ -145,7 +145,7 @@ class MLTrainerService:
                 recall=final_rec,
                 f1_score=final_f1,
                 matriz_confusion=np.array2string(matriz),
-                ruta_archivo_joblib=ruta_final_joblib
+                ruta_archivo_joblib=nombre_versionado
             )
             
             return True
