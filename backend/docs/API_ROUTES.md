@@ -1,4 +1,4 @@
-# Documentación de Endpoints - HealthAnalytics IPS
+s# Documentación de Endpoints - HealthAnalytics IPS
 
 > **Nota:** El parámetro `format` del endpoint de exportación se renombró a `export_format` para evitar conflicto con palabras reservadas internas de Django.
 
@@ -385,7 +385,59 @@
 
 ## Módulo: ML
 
+### `GET /api/ml/metricas/`
+- **Propósito:** Obtener métricas ML guardadas de los entrenamientos (DB: `MetricasModelos`) e información del modelo (incluye `ruta_archivo_joblib`).
+- **Roles permitidos:** `Administrador`, `Analista`.
+- **Headers:**
+  - `Authorization: Bearer {access_token}`
+- **Método HTTP:** `GET`
+- **Respuesta 200 (éxito):**
+  ```json
+  {
+    "estado": "EXITOSO",
+    "datos": {
+      "modelos": [
+        {
+          "id": 1,
+          "nombre_modelo": "RandomForestClassifier",
+          "trained_at": "2026-06-10T20:47:12Z",
+          "default": true,
+          "ruta_archivo_joblib": "ml/saved_models/modelo_riesgo_rf_20260610_204712.joblib",
+          "metricas": {
+            "accuracy": 0.0,
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1_score": 0.0
+          },
+          "matriz_confusion": "[...]"
+        }
+      ]
+    }
+  }
+  ```
+- **Respuesta 401 (sin token):**
+  ```json
+  {
+    "detail": "Authentication credentials were not provided."
+  }
+  ```
+- **Respuesta 403 (rol sin permisos):**
+  ```json
+  {
+    "detail": "You do not have permission to perform this action."
+  }
+  ```
+- **Respuesta 500 (error interno):**
+  ```json
+  {
+    "error": "Descripción del error"
+  }
+  ```
+
+---
+
 ### `POST /api/ml/prediccion/`
+
 - **Propósito:** Predecir riesgo de enfermedad para nuevos datos clínicos.
 - **Roles permitidos:** `Administrador`, `Médico`.
 - **Headers:**
