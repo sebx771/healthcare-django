@@ -107,13 +107,110 @@ function validarFormularioML(form) {
   return errores;
 }
 
+function renderMlMetricas(data) {
+  const container = document.getElementById('ml-modelos-metricas');
+  if (!container) return;
+
+  const modelos = data?.datos?.modelos || data?.modelos || [];
+
+  if (!modelos.length) {
+    container.innerHTML = `
+      <div class="text-center text-muted py-4">
+        <i class="bi bi-info-circle fs-1 d-block mb-2 opacity-25"></i>
+        <p class="small mb-0">No hay modelos/métricas disponibles.</p>
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = `
+    <div class="row g-3">
+      <div class="col-12">
+        <div class="table-responsive">
+          <table class="table table-sm align-middle mb-0">
+            <thead>
+              <tr>
+                <th>Modelo</th>
+                <th>Default</th>
+                <th>Entrenado</th>
+                <th>Accuracy</th>
+                <th>Precision</th>
+                <th>Recall</th>
+                <th>F1</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${modelos.map(m => {
+                const metricas = m.metricas || {};
+                return `
+                  <tr>
+                    <td class="fw-semibold">${m.nombre_modelo || m.nombre || '—'}</td>
+                    <td>${m.default ? '<span class="badge bg-success">Sí</span>' : '<span class="badge bg-secondary">No</span>'}</td>
+                    <td>${m.trained_at || m.trainedAt || m.trained || '—'}</td>
+                    <td>${typeof metricas.accuracy === 'number' ? metricas.accuracy.toFixed(3) : '—'}</td>
+                    <td>${typeof metricas.precision === 'number' ? metricas.precision.toFixed(3) : '—'}</td>
+                    <td>${typeof metricas.recall === 'number' ? metricas.recall.toFixed(3) : '—'}</td>
+                    <td>${(typeof (metricas.f1_score ?? metricas.f1) === 'number') ? (metricas.f1_score ?? metricas.f1).toFixed(3) : '—'}</td>
+                  </tr>
+                `;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+async function fetchMlMetricas() {
+  const btn = document.getElementById('btn-ml-metricas');
+  const container = document.getElementById('ml-modelos-metricas');
+  if (!container) return;
+
+  if (btn) btn.disabled = true;
+  container.innerHTML = `
+    <div class="text-center text-muted py-4">
+      <div class="spinner-border spinner-border-sm" role="status"></div>
+      <p class="small mt-2 mb-0">Cargando métricas...</p>
+    </div>
+  `;
+
+  try {
+    const res = await fetchWithAuth('/api/ml/metricas/', { method: 'GET' });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || err.message || `Error ${res.status}`);
+    }
+
+    const data = await res.json();
+    renderMlMetricas(data);
+  } catch (e) {
+    container.innerHTML = `
+      <div class="alert alert-danger mb-0">
+        <i class="bi bi-exclamation-triangle me-2"></i>${e.message}
+      </div>
+    `;
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
 function initMl() {
   const form      = document.getElementById('form-ml');
   const btnText   = document.getElementById('ml-text');
   const btnSpin   = document.getElementById('ml-spinner');
   const btnSubmit = document.getElementById('btn-predecir');
 
+  const btnMetricas = document.getElementById('btn-ml-metricas');
+  if (btnMetricas) {
+    btnMetricas.addEventListener('click', (e) => {
+      e.preventDefault();
+      fetchMlMetricas();
+    });
+  }
+
   form.addEventListener('submit', async (e) => {
+
     e.preventDefault();
 
     const errores = validarFormularioML(form);

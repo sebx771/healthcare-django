@@ -232,7 +232,36 @@
 
         <!-- ML -->
         <div id="section-ml" class="view-section d-none">
-          <h5 class="fw-bold mb-4">Predicción con Machine Learning</h5>
+          <h5 class="fw-bold mb-2">Predicción con Machine Learning</h5>
+          <p class="text-muted small mb-4">Consulta métricas y modelos disponibles, y realiza predicciones.</p>
+
+          <div class="row g-3 mb-4">
+            <div class="col-lg-12">
+              <div class="card shadow-sm">
+                <div class="card-body">
+                  <div class="d-flex align-items-center justify-content-between gap-3 flex-wrap">
+                    <div>
+                      <h6 class="fw-semibold mb-1"><i class="bi bi-graph-up-arrow me-2"></i>Métricas ML y Modelos</h6>
+                      <div class="text-muted small">Se obtiene desde el endpoint: <span class="fw-semibold">/api/ml/metricas/</span></div>
+                    </div>
+                    <div class="d-flex gap-2">
+                      <button class="btn btn-outline-primary btn-sm" id="btn-ml-metricas">
+                        <i class="bi bi-cloud-download me-1"></i>Ver métricas
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="mt-3" id="ml-modelos-metricas">
+                    <div class="text-center text-muted py-4">
+                      <i class="bi bi-cpu fs-1 d-block mb-2 opacity-25"></i>
+                      <p class="small mb-0">Presiona “Ver métricas” para cargar la información de modelos y métricas.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div class="row g-3">
             <div class="col-lg-7">
               <div class="card shadow-sm">
@@ -240,6 +269,7 @@
                   <h6 class="fw-semibold mb-3">Datos Clínicos del Paciente</h6>
                    <form id="form-ml" novalidate>
                      <div class="row g-3">
+
                        <div class="col-md-4">
                          <label class="form-label" for="ml-edad">Edad</label>
                          <input type="number" id="ml-edad" name="edad" class="form-control" min="0" max="120" step="1" required placeholder="0 - 120" />
