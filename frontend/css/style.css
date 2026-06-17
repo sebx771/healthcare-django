@@ -17,6 +17,7 @@
   --sura-shadow: 0 2px 4px rgba(0,0,0,0.05);
   --sura-transition: all 0.25s ease-in-out;
   --sidebar-width: 250px;
+  --sidebar-collapsed-width: 70px;
 }
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -84,26 +85,119 @@ body {
 }
 
 .sidebar.collapsed {
-  width: 70px;
+  width: var(--sidebar-collapsed-width);
+  overflow: hidden;
+}
+
+.sidebar.collapsed .sidebar-brand {
+  justify-content: center;
+  padding: 0.75rem 0;
+}
+
+.sidebar.collapsed .sidebar-brand > i {
+  margin-left: 0 !important;
+  margin-right: 0 !important;
 }
 
 .sidebar.collapsed .sidebar-brand span,
 .sidebar.collapsed .nav-link span,
 .sidebar.collapsed .sidebar-role-badge,
 .sidebar.collapsed #sidebar-username,
-.sidebar.collapsed #btn-logout span {
-  display: none;
+.sidebar.collapsed #btn-logout span,
+.sidebar.collapsed #btn-logout i {
+  margin-left: 0 !important;
+  margin-right: 0 !important;
 }
 
-.sidebar.collapsed .nav-link {
+/* Solo íconos: ocultar cualquier texto/elemento no-<i> dentro del sidebar colapsado */
+.sidebar.collapsed .sidebar-brand > :not(i),
+.sidebar.collapsed .sidebar-link > :not(i),
+.sidebar.collapsed #btn-logout > :not(i) {
+  display: none !important;
+}
+
+/* Asegurar que los <i> sean visibles */
+.sidebar.collapsed .sidebar-brand > i,
+.sidebar.collapsed .sidebar-link > i,
+.sidebar.collapsed #btn-logout > i {
+  display: inline-block !important;
+}
+
+/* En colapsado: ocultar completamente la sección de información de usuario */
+.sidebar.collapsed .sidebar-avatar,
+.sidebar.collapsed .sidebar-role-badge,
+.sidebar.collapsed #sidebar-username {
+  display: none !important;
+}
+
+/* Ocultar TODOS los contenidos de texto excepto los íconos en modo colapsado */
+.sidebar.collapsed .sidebar-brand,
+.sidebar.collapsed .sidebar-link,
+.sidebar.collapsed #btn-logout {
+
+  gap: 0 !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+/* Para nodos de texto directo (como "Dashboard" después del <i>) */
+.sidebar.collapsed .sidebar-brand,
+.sidebar.collapsed .sidebar-link,
+.sidebar.collapsed #btn-logout {
+  color: var(--sura-text-light); /* mantiene legibilidad del rail */
+}
+
+.sidebar.collapsed .sidebar-brand > *:not(i),
+.sidebar.collapsed .sidebar-link > *:not(i),
+.sidebar.collapsed #btn-logout > *:not(i) {
+  display: none !important;
+}
+
+/* Ocultar también cualquier texto que sea nodo directo dentro de esos contenedores */
+.sidebar.collapsed .sidebar-brand,
+.sidebar.collapsed .sidebar-link,
+.sidebar.collapsed #btn-logout {
+  font-size: 0 !important;
+}
+
+.sidebar.collapsed .sidebar-brand > i,
+.sidebar.collapsed .sidebar-link > i,
+.sidebar.collapsed #btn-logout > i {
+  font-size: 1.2rem !important;
+}
+
+
+
+.sidebar.collapsed ul.nav {
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+.sidebar.collapsed .sidebar-link {
   justify-content: center;
   padding: 0.7rem 0;
 }
 
-.sidebar.collapsed .nav-link i {
-  margin: 0 !important;
+.sidebar.collapsed .sidebar-link > i {
+  margin-left: 0 !important;
+  margin-right: 0 !important;
   font-size: 1.2rem;
 }
+
+.sidebar.collapsed .sidebar-avatar {
+  display: none;
+}
+
+.sidebar.collapsed #btn-logout {
+  justify-content: center;
+  padding: 0.5rem 0;
+}
+
+.sidebar.collapsed #btn-logout > i {
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
 
 .sidebar-brand {
   font-size: 1rem;
@@ -116,6 +210,10 @@ body {
 .sidebar-divider {
   border-color: rgba(255,255,255,0.1);
   margin: 0 0 0.5rem;
+}
+
+.sidebar.collapsed .sidebar-divider {
+  margin: 0 0.75rem;
 }
 
 .sidebar-link {
@@ -166,7 +264,7 @@ body {
 }
 
 .main-content.sidebar-collapsed {
-  margin-left: 70px;
+  margin-left: var(--sidebar-collapsed-width);
 }
 
 .topbar {
