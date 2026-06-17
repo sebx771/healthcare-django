@@ -162,7 +162,28 @@ function renderMlMetricas(data) {
   `;
 }
 
+function isUsuarioMedico() {
+  return localStorage.getItem('rol') === 'Médico';
+}
+
+function renderMlMetricasRestringidas() {
+  const container = document.getElementById('ml-modelos-metricas');
+  if (!container) return;
+
+  container.innerHTML = `
+    <div class="text-center text-muted py-4">
+      <i class="bi bi-shield-lock fs-1 d-block mb-2 opacity-25"></i>
+      <p class="small mb-0">Las métricas del modelo no están disponibles para tu perfil.</p>
+    </div>
+  `;
+}
+
 async function fetchMlMetricas() {
+  if (isUsuarioMedico()) {
+    renderMlMetricasRestringidas();
+    return;
+  }
+
   const btn = document.getElementById('btn-ml-metricas');
   const container = document.getElementById('ml-modelos-metricas');
   if (!container) return;
@@ -201,8 +222,33 @@ function initMl() {
   const btnSpin   = document.getElementById('ml-spinner');
   const btnSubmit = document.getElementById('btn-predecir');
 
+  const metricasCard = document.getElementById('ml-modelos-metricas');
   const btnMetricas = document.getElementById('btn-ml-metricas');
-  if (btnMetricas) {
+
+  // UI + protección: médicos no ven/cargan métricas
+  if (isUsuarioMedico()) {
+    const sectionMl = document.getElementById('section-ml');
+    const btnHeader = btnMetricas ? btnMetricas.closest('.row, .col-lg-12, .d-flex') : null;
+    const headerCard = metricasCard ? metricasCard.closest('#ml-modelos-metricas') : null;
+
+    // Oculta la “tarjeta” de métricas completa si existe (id no definido en el HTML actual)
+    // y deja el formulario/predicción visible.
+    if (metricasCard) {
+      const card = document.querySelector('#ml-modelos-metricas')?.closest('.card-body');
+      if (card) {
+        // dentro de esa card-body, ocultamos solo el bloque de métricas
+        const modelosBlock = document.getElementById('ml-modelos-metricas');
+        if (modelosBlock) modelosBlock.style.display = 'none';
+        if (btnMetricas) btnMetricas.style.display = 'none';
+        // también ocultar el titulo/descripcion del bloque (ubicación relativa)
+        const header = btnMetricas ? btnMetricas.closest('.d-flex') : null;
+        if (header) header.style.display = 'none';
+      }
+    }
+
+    if (metricasCard) renderMlMetricasRestringidas();
+  } else if (btnMetricas) {
+
     btnMetricas.addEventListener('click', (e) => {
       e.preventDefault();
       fetchMlMetricas();
@@ -212,6 +258,7 @@ function initMl() {
   form.addEventListener('submit', async (e) => {
 
     e.preventDefault();
+
 
     const errores = validarFormularioML(form);
     if (errores.length) {
