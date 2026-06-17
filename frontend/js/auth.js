@@ -67,6 +67,13 @@ function setLoginLoading(isLoading) {
 function showLoginError(message) {
   const errorDiv = document.getElementById('login-error');
   if (!errorDiv) return;
+
+  if (!message) {
+    errorDiv.textContent = '';
+    errorDiv.classList.add('d-none');
+    return;
+  }
+
   errorDiv.textContent = message;
   errorDiv.classList.remove('d-none');
 }
@@ -133,6 +140,7 @@ function initAuth() {
       localStorage.setItem('rol', data.rol || data.role || 'Médico');
       localStorage.setItem('username', data.username || username);
 
+      showLoginError('');
       window.showApp();
     } catch (err) {
       showLoginError(err.message || 'No se pudo iniciar sesión. Verifique sus credenciales o intente nuevamente.');

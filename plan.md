@@ -1,263 +1,177 @@
-# Plan de acción: mejorar falla de credenciales y mantener siempre el login
+# Diagnóstico y plan de acción: rectángulo rojo en login
 
 ## Objetivo
 
-Mantener la implementación actual sin migrar a ES Modules.
-
-El único cambio funcional requerido es que el flujo de login sea más seguro:
-
-1. La pantalla de login siempre debe permanecer visible mientras la autenticación falle.
-2. Si las credenciales son incorrectas, debe mostrarse `Credenciales inválidas`.
-3. Si ocurre cualquier error de red, respuesta inesperada o falta de tokens, el usuario debe quedarse en el login.
-4. Nunca se debe llamar a `window.showApp()` en un caso fallido.
-5. El dashboard solo debe mostrarse después de una respuesta exitosa y válida del endpoint de login.
+Eliminar el rectángulo rojo visible durante la validación de credenciales y mantener un mensaje de error limpio, discreto y profesional en el panel de login.
 
 ---
 
-## Problema actual
+## Diagnóstico
 
-Actualmente el login puede fallar o dejar tokens inconsistentes y el flujo puede terminar mostrando la app/dashboard de forma incorrecta.
-
-El comportamiento esperado es:
-
-- Login fallido: quedarse en login.
-- Credenciales incorrectas: mostrar `Credenciales inválidas`.
-- Error de red: quedarse en login y mostrar mensaje de error.
-- Respuesta del servidor sin tokens: quedarse en login.
-- Login correcto: guardar tokens y pasar al dashboard.
-
----
-
-## Alcance
-
-No se migrará a ES Modules.
-
-No se cambiará la arquitectura completa del frontend.
-
-Solo se ajustará la lógica de autenticación en:
+### Archivos revisados
 
 - `frontend/js/auth.js`
-- `frontend/js/app.js` si actualmente decide entrar automáticamente al dashboard por un token guardado.
+- `frontend/index.html`
+- `frontend/css/style.css`
 
----
+### Causa principal
 
-## Plan propuesto
-
-### 1. Mantener scripts normales
-
-No cambiar los `<script>` de `frontend/index.html` a `type="module"`.
-
-Mantener la carga actual:
+El rectángulo rojo aparece porque el contenedor de error del login está definido en `frontend/index.html:37` con clases de Bootstrap:
 
 ```html
-<script src="js/app.js"></script>
-<script src="js/auth.js"></script>
-<script src="js/dashboard.js"></script>
-<script src="js/pacientes.js"></script>
-<script src="js/ml.js"></script>
-<script src="js/reportes.js"></script>
+<div id="login-error" class="alert alert-danger d-none py-2 small"></div>
+```
+
+Luego, en `frontend/js/auth.js:67`, la función `showLoginError()` siempre ejecuta:
+
+```js
+errorDiv.textContent = message;
+errorDiv.classList.remove('d-none');
+```
+
+El problema ocurre porque en `frontend/js/auth.js:102` se llama a:
+
+```js
+showLoginError('');
+```
+
+Antes de validar las credenciales.
+
+Aunque el mensaje está vacío, la función remueve la clase `d-none`, haciendo visible el `div`. Como el `div` conserva `alert alert-danger`, Bootstrap le aplica fondo rojo, borde rojo y relleno, generando el rectángulo rojo aunque no haya texto.
+
+---
+
+## Problemas detectados
+
+1. `showLoginError('')` muestra el contenedor aunque no exista mensaje.
+2. El error usa directamente `alert alert-danger`, que es visualmente fuerte para una validación de login.
+3. No se oculta el error al iniciar un nuevo intento de login.
+4. El contenedor puede quedar visible con texto vacío si se llama con un string vacío.
+5. La interfaz pierde limpieza visual durante la validación porque el bloque rojo aparece antes o durante el proceso.
+
+---
+
+## Solución recomendada
+
+### 1. Corregir `showLoginError()`
+
+La función debe ocultar el contenedor cuando el mensaje esté vacío.
+
+Lógica esperada:
+
+```js
+function showLoginError(message) {
+  const errorDiv = document.getElementById('login-error');
+  if (!errorDiv) return;
+
+  if (!message) {
+    errorDiv.textContent = '';
+    errorDiv.classList.add('d-none');
+    return;
+  }
+
+  errorDiv.textContent = message;
+  errorDiv.classList.remove('d-none');
+}
 ```
 
 ---
 
-### 2. Evitar entrada automática al dashboard
+### 2. Cambiar el contenedor de error en `index.html`
 
-`frontend/js/app.js` no debe entrar al dashboard solo porque exista `access_token` en `localStorage`.
+Reemplazar:
 
-El boot inicial debe dejar:
-
-- `#view-login` visible.
-- `#view-app` oculto.
-
-La app solo debe mostrarse después de que `frontend/js/auth.js` confirme un login exitoso.
-
----
-
-### 3. Controlar el submit del formulario de login
-
-En `frontend/js/auth.js`, dentro del evento `submit` de `#form-login`:
-
-1. Limpiar el mensaje de error anterior.
-2. Deshabilitar el botón mientras se consulta el backend.
-3. Leer usuario y contraseña.
-4. Hacer `POST` a:
-
-```txt
-/api/auth/login/
+```html
+<div id="login-error" class="alert alert-danger d-none py-2 small"></div>
 ```
 
-5. Si la respuesta HTTP no es exitosa:
-   - mostrar `Credenciales inválidas`.
-   - no llamar a `window.showApp()`.
-   - mantener el usuario en login.
+Por una clase propia del proyecto:
 
-6. Si la respuesta HTTP es exitosa pero el JSON no trae tokens:
-   - mostrar `Credenciales inválidas` o `Error al iniciar sesión`.
-   - no llamar a `window.showApp()`.
-   - mantener el usuario en login.
-
-7. Si la respuesta HTTP es exitosa y trae tokens válidos:
-   - guardar `access_token`.
-   - guardar `refresh_token`.
-   - guardar `rol`.
-   - guardar `username`.
-   - recién ahí llamar a `window.showApp()`.
-
----
-
-### 4. Manejar cualquier excepción sin salir del login
-
-El bloque del login debe envolver todo en `try/catch`.
-
-Cualquier error debe tratarse como login fallido:
-
-- error de red.
-- servidor no disponible.
-- JSON inválido.
-- respuesta vacía.
-- falta de `access_token`.
-- falta de `refresh_token`.
-- token vacío.
-- excepción inesperada.
-
-En todos esos casos:
-
-1. Restaurar el botón de login.
-2. Mostrar mensaje de error.
-3. Mantener `#view-login` visible.
-4. Mantener `#view-app` oculto.
-5. No llamar a `window.showApp()`.
-
----
-
-### 5. Mensajes esperados
-
-Para credenciales incorrectas, el mensaje visible debe ser:
-
-```txt
-Credenciales inválidas
+```html
+<div id="login-error" class="login-error d-none"></div>
 ```
 
-Para otros errores técnicos, se puede mostrar un mensaje seguro como:
+Esto evita depender del estilo fuerte de Bootstrap para errores.
 
-```txt
-No se pudo iniciar sesión. Verifique sus credenciales o intente nuevamente.
+---
+
+### 3. Agregar estilo visual más limpio en `style.css`
+
+Agregar un estilo discreto para el error de login:
+
+```css
+.login-error {
+  border: 1px solid rgba(220, 53, 69, 0.2);
+  border-radius: var(--sura-radius);
+  background: rgba(220, 53, 69, 0.06);
+  color: #842029;
+  padding: 0.55rem 0.75rem;
+  font-size: 0.875rem;
+  line-height: 1.35;
+}
 ```
 
-Pero en ningún caso se debe salir del panel de login.
+Este estilo mantiene la intención de alerta, pero reduce el impacto visual.
 
 ---
 
-### 6. Validar tokens antes de entrar
+### 4. Ocultar el error al iniciar sesión correctamente
 
-Antes de llamar a `window.showApp()`, validar que la respuesta tenga:
+Después de guardar los tokens y antes de llamar a `window.showApp()`, se recomienda limpiar el mensaje:
 
-```txt
-access_token
-refresh_token
+```js
+showLoginError('');
+window.showApp();
 ```
 
-Si el backend usa nombres alternativos, aceptar también:
+---
 
-```txt
-access
-refresh
-```
+## Tareas de implementación
 
-Si falta cualquiera de los dos, tratar como login fallido.
+### Tarea 1: Corregir la función `showLoginError()`
+
+Archivo: `frontend/js/auth.js`
+
+Objetivo:
+- Evitar que el contenedor se muestre cuando el mensaje está vacío.
+- Ocultar el error cuando se reciba un mensaje vacío.
 
 ---
 
-### 7. Logout
+### Tarea 2: Cambiar clases de Bootstrap por clase propia
 
-El logout debe seguir funcionando así:
+Archivo: `frontend/index.html`
 
-1. Limpiar:
-   - `access_token`
-   - `refresh_token`
-   - `rol`
-   - `username`
-2. Llamar a `window.showLogin()`.
-3. Mantener el dashboard oculto.
+Objetivo:
+- Reemplazar `alert alert-danger d-none py-2 small` por `login-error d-none`.
+- Mantener el mismo `id="login-error"`.
 
 ---
 
-### 8. `fetchWithAuth`
+### Tarea 3: Agregar estilo propio para el error de login
 
-`fetchWithAuth` puede seguir en `auth.js`.
+Archivo: `frontend/css/style.css`
 
-Debe mantener este comportamiento:
-
-1. Si recibe `401`, intentar refrescar token.
-2. Si el refresh funciona, reintentar la petición.
-3. Si el refresh falla:
-   - limpiar tokens.
-   - llamar a `window.showLogin()`.
-   - no permitir continuar en el dashboard.
+Objetivo:
+- Crear una alerta de login más limpia y menos invasiva.
+- Usar variables existentes del proyecto cuando sea posible.
 
 ---
 
-## Validación final
+### Tarea 4: Limpiar error al iniciar sesión correctamente
 
-Probar manualmente estos casos:
+Archivo: `frontend/js/auth.js`
 
-### Caso 1: carga inicial
-
-Resultado esperado:
-
-- Se muestra el login.
-- No se muestra el dashboard.
-
-### Caso 2: credenciales incorrectas
-
-Resultado esperado:
-
-- Se muestra `Credenciales inválidas`.
-- El usuario sigue en login.
-- No se muestra el dashboard.
-
-### Caso 3: backend no disponible
-
-Resultado esperado:
-
-- Se muestra un mensaje de error.
-- El usuario sigue en login.
-- No se muestra el dashboard.
-
-### Caso 4: respuesta sin tokens
-
-Resultado esperado:
-
-- Se muestra un mensaje de error.
-- El usuario sigue en login.
-- No se guarda una sesión inválida.
-- No se muestra el dashboard.
-
-### Caso 5: credenciales correctas
-
-Resultado esperado:
-
-- Se guardan los tokens.
-- Se guarda usuario y rol.
-- Se llama a `window.showApp()`.
-- Se muestra el dashboard.
-
-### Caso 6: logout
-
-Resultado esperado:
-
-- Se limpian tokens.
-- Se muestra nuevamente el login.
-- No se puede acceder al dashboard sin volver a loguearse.
+Objetivo:
+- Llamar `showLoginError('')` antes de `window.showApp()` en el flujo exitoso.
+- Garantizar que el mensaje no persista entre sesiones.
 
 ---
 
-## Riesgos a controlar
+## Criterios de aceptación
 
-- No llamar a `window.showApp()` dentro del bloque `catch`.
-- No llamar a `window.showApp()` si la respuesta HTTP falla.
-- No llamar a `window.showApp()` si falta `access_token`.
-- No llamar a `window.showApp()` si falta `refresh_token`.
-- No usar `localStorage.getItem('access_token')` en `app.js` para entrar automáticamente al dashboard.
-- Restaurar siempre el botón de login en el bloque `finally`.
-- Mantener el login visible ante cualquier excepción.
+1. Al presionar “Iniciar Sesión”, no debe aparecer ningún rectángulo rojo vacío.
+2. Si las credenciales son inválidas, debe mostrarse el mensaje de error de forma discreta.
+3. Si hay error de red o falta de tokens, el usuario debe permanecer en login.
+4. Si el login es exitoso, el mensaje de error debe desaparecer antes de mostrar la app.
+5. El diseño debe verse más limpio y profesional durante la validación.

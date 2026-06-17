@@ -52,6 +52,16 @@ body {
   color: #fff;
 }
 
+.login-error {
+  border: 1px solid rgba(220, 53, 69, 0.2);
+  border-radius: var(--sura-radius);
+  background: rgba(220, 53, 69, 0.06);
+  color: #842029;
+  padding: 0.55rem 0.75rem;
+  font-size: 0.875rem;
+  line-height: 1.35;
+}
+
 /* ── APP SHELL ── */
 .app-shell {
   display: flex;
