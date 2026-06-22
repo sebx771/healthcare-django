@@ -97,7 +97,7 @@ import dj_database_url
 DATABASES = {
     'default': dj_database_url.parse(
         DATABASE_URL,
-        conn_max_age=600,
+        conn_max_age=0,
         ssl_require=True 
     )
 }
@@ -142,6 +142,19 @@ TIME_ZONE = 'UTC'
 USE_I18N = True
 
 USE_TZ = True
+
+CLINICAL_TEXT_VALUE_MAPPINGS = {
+    'presion_sistolica': {'baja': 90.0, 'normal': 120.0, 'alta': 150.0},
+    'presion_diastolica': {'baja': 60.0, 'normal': 80.0, 'alta': 95.0},
+    'frecuencia_cardiaca': {'baja': 60.0, 'normal': 80.0, 'alta': 110.0},
+    'saturacion_oxigeno': {'baja': 90.0, 'normal': 98.0, 'alta': 100.0},
+    'glucosa': {'baja': 70.0, 'normal': 100.0, 'alta': 200.0},
+    'temperatura': {'baja': 35.5, 'normal': 36.6, 'alta': 38.5},
+    'peso': {'baja': 50.0, 'normal': 70.0, 'alta': 100.0},
+    'altura': {'baja': 1.50, 'normal': 1.70, 'alta': 1.90},
+    'imc': {'baja': 18.5, 'normal': 24.9, 'alta': 30.0},
+    'colesterol': {'baja': 150.0, 'normal': 200.0, 'alta': 240.0},
+}
 
 
 # Static files (CSS, JavaScript, Images)
