@@ -21,10 +21,10 @@ RUN pip install --no-cache-dir --upgrade pip setuptools wheel
 # 4. Copiar e instalar requerimientos
 COPY backend/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
-
+        
 # 5. Copiar el resto del proyecto
 COPY /backend/ /app/
 
 EXPOSE 8000
 
-CMD ["gunicorn", "core.wsgi:application", "--bind", "0.0.0.0:8000"]
+CMD ["gunicorn", "core.wsgi:application", "--bind", "0.0.0.0:8000" , "--timeout" , "120" , "--worker", "1"]
