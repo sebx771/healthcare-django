@@ -228,10 +228,21 @@ function initLogout() {
 
 document.addEventListener('DOMContentLoaded', () => {
   initSidebar();
+  // initPacientes() mantiene el handler, pero NO mostramos la vista “pacientes” automáticamente.
+  // La sección solo se abre al seleccionar un registro desde la tabla.
   initPacientes();
+
   initMl();
   initReportes();
   initEtl();
   initLogout();
-  window.showLogin();
+
+  // No enviar al login si ya hay tokens en localStorage.
+  // La pantalla inicial la decide el auth.js (login success).
+  const hasAccess = !!localStorage.getItem('access_token');
+  if (hasAccess) {
+    window.showApp();
+  } else {
+    window.showLogin();
+  }
 });

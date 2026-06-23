@@ -20,6 +20,8 @@ function renderKpiCards(data) {
   const kpis = [
     { label: 'Total Registros',      value: data.total_registros     ?? '—', icon: 'bi-people-fill',        color: '#0033A0' },
     { label: 'Pacientes Críticos',   value: data.pacientes_criticos   ?? '—', icon: 'bi-exclamation-triangle-fill', color: '#DC3545' },
+    { label: 'Pacientes Sospechosos', value: data.pacientes_sospechosos ?? '—', icon: 'bi-eye-fill', color: '#FFC107' },
+    { label: 'Riesgo Inconsistente', value: data.pacientes_riesgo_inconsistente ?? '—', icon: 'bi-shuffle', color: '#FD7E14' },
     { label: 'Riesgo Promedio',      value: data.riesgo_promedio_poblacional ?? '—', icon: 'bi-activity',           color: '#FD7E14' },
     { label: 'Pacientes Hipertensos', value: data.pacientes_hipertensos ?? '—', icon: 'bi-heart-pulse-fill', color: '#E91E63' },
     { label: 'Pacientes Diabéticos', value: data.pacientes_diabeticos ?? '—', icon: 'bi-droplet-fill', color: '#05C3DE' },
