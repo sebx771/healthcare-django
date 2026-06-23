@@ -395,7 +395,6 @@ class ETLService:
         for clave, valor in sorted(metricas.items()):
             logger.info(f"   {clave}: {valor}")
 
-
     @staticmethod
     def _cargar(df):
         try:
@@ -403,7 +402,6 @@ class ETLService:
             criticos_detectados = 0
 
             # 1. Pre-cargar registros existentes usando TODOS los campos clínicos relevantes
-            # para verificar duplicación 100% exacta con lo que ya está en la BD.
             logger.info("🔍 Extrayendo registros de la BD para control estricto de duplicados...")
             claves_existentes = set(
                 Paciente.objects.values_list(
@@ -458,9 +456,6 @@ class ETLService:
                     'fecha_consulta': getattr(fila, 'fecha_consulta', None)
                 }
 
-                # 2. Armamos la tupla de validación con todos los valores para asegurar similitud exacta
-                # (Nota: Omitimos fecha_consulta en la tupla por si se cargan en distintas corridas, 
-                # pero el resto del estado clínico debe ser idéntico)
                 clave = (
                     datos_clinicos['nombres'], datos_clinicos['apellidos'], datos_clinicos['edad'],
                     datos_clinicos['sexo'], datos_clinicos['peso'], datos_clinicos['altura'], datos_clinicos['imc'],
@@ -471,19 +466,28 @@ class ETLService:
                 )
 
                 if clave not in claves_existentes:
-                    pacientes_a_crear.append(Paciente(**datos_clinicos))
+                    # 💡 CREAMOS LA INSTANCIA EN MEMORIA
+                    nuevo_paciente = Paciente(**datos_clinicos)
+                    
+                    # 💡 CALCULAMOS LOS FLAGS EN MEMORIA DIRECTAMENTE ANTES DE GUARDAR
+                    # Reemplazamos la lógica de sync_flags() para asignarla aquí sin hacer .save()
+                    nuevo_paciente.critico_flag = bool(nuevo_paciente.critico)
+                    nuevo_paciente.sospechoso_flag = bool(nuevo_paciente.sospechoso)
+                    nuevo_paciente.riesgo_inconsistente_flag = bool(nuevo_paciente.riesgo_inconsistente)
+                    nuevo_paciente.nivel_riesgo_calculado_persistido = nuevo_paciente.nivel_riesgo_calculado
+                    
+                    pacientes_a_crear.append(nuevo_paciente)
                     claves_existentes.add(clave)
 
+            # 3. Guardamos TODO en una sola consulta SQL limpia y masiva
             if pacientes_a_crear:
                 Paciente.objects.bulk_create(pacientes_a_crear)
-
-                for p in Paciente.objects.all().order_by('-id')[:len(pacientes_a_crear)].iterator():
-                    p.sync_flags()
+                # 🔥 El bucle lento e iterator() ha sido completamente eliminado.
 
             logger.info(f"✅ CARGA EXITOSA: {len(pacientes_a_crear)} registros insertados en la BD.")
-
             logger.info(f"🚨 Alertas críticas detectadas activas: {criticos_detectados}")
             return True
+            
         except Exception as e:
             logger.error(f"💥 Fallo crítico en la carga a la BD: {str(e)}", exc_info=True)
             return False
