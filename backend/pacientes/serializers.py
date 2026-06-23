@@ -3,6 +3,7 @@ import pandas as pd
 from rest_framework import serializers
 from django.contrib.auth.models import User
 from .models import ArchivoETL, Paciente
+from .services import RevisionService
 
 class UsuarioSimpleSerializer(serializers.ModelSerializer):
     class Meta:
@@ -79,8 +80,32 @@ class UploadArchivoSerializer(serializers.Serializer):
 
 
 class PacienteSerializer(serializers.ModelSerializer):
-    critico = serializers.ReadOnlyField()
+    revisado = serializers.SerializerMethodField()
+    revision_info = serializers.SerializerMethodField()
+
+    def get_revisado(self, obj):
+        ids = self.context.get('ids_revisados')
+        if ids is not None:
+            return obj.pk in ids
+        return RevisionService.esta_revisado(obj.pk)
+
+    def get_revision_info(self, obj):
+        return RevisionService.obtener_info_revision(obj.pk)
 
     class Meta:
         model = Paciente
-        fields = '__all__'
+        fields = [
+            'id',
+            'nombres', 'apellidos', 'edad', 'sexo',
+            'peso', 'altura', 'imc',
+            'presion_sistolica', 'presion_diastolica',
+            'frecuencia_cardiaca', 'saturacion_oxigeno', 'temperatura',
+            'glucosa', 'colesterol',
+            'antecedentes_familiares', 'fumador', 'consumo_alcohol', 'actividad_fisica',
+            'diagnostico_preliminar', 'riesgo_enfermedad', 'fecha_consulta',
+            'critico', 'sospechoso', 'riesgo_inconsistente', 'nivel_riesgo_calculado',
+            'motivos_critico', 'motivos_sospecha', 'motivos_riesgo_inconsistente',
+            'revisado', 'revision_info',
+        ]
+
+

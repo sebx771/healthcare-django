@@ -3,6 +3,7 @@ from django.db import models
 
 class Paciente(models.Model):
     nombres = models.CharField(max_length=150)
+
     apellidos = models.CharField(max_length=150)
     edad = models.IntegerField()
     sexo = models.CharField(max_length=20)
@@ -23,6 +24,18 @@ class Paciente(models.Model):
     diagnostico_preliminar = models.CharField(max_length=150)
     riesgo_enfermedad = models.CharField(max_length=50)
     fecha_consulta = models.DateField()
+
+    # ============================
+    # Campos persistidos (Fase 3)
+    # ============================
+
+    # Flags precalculados para que el filtro del front sea consistente con el modelo
+    riesgo_inconsistente_flag = models.BooleanField(default=False)
+    critico_flag = models.BooleanField(default=False)
+    sospechoso_flag = models.BooleanField(default=False)
+
+    # Nivel persistido para evitar recalcular en cada request (opcional, pero útil)
+    nivel_riesgo_calculado_persistido = models.CharField(max_length=50, default='Bajo')
 
     # ============================
     # Fase 2 (sin campos persistidos)
@@ -154,11 +167,20 @@ class Paciente(models.Model):
 
         return 'Bajo'
 
+    @classmethod
+    def _normalizar_riesgo(cls, valor):
+        """Nivela 'Crítico' a 'Alto' para la comparación de consistencia,
+        ya que la heurística nunca calcula 'Crítico'."""
+        nivel = str(valor).strip().capitalize()
+        if nivel == 'Crítico':
+            return 'Alto'
+        return nivel
+
     @property
     def motivos_riesgo_inconsistente(self):
         motivos = []
         try:
-            riesgo_asignado = str(self.riesgo_enfermedad).strip().capitalize()
+            riesgo_asignado = self._normalizar_riesgo(self.riesgo_enfermedad)
         except Exception:
             riesgo_asignado = 'Bajo'
 
@@ -170,6 +192,16 @@ class Paciente(models.Model):
     @property
     def riesgo_inconsistente(self):
         return len(self.motivos_riesgo_inconsistente) > 0
+
+    def sync_flags(self):
+        self.critico_flag = bool(self.critico)
+        self.sospechoso_flag = bool(self.sospechoso)
+        self.riesgo_inconsistente_flag = bool(self.riesgo_inconsistente)
+        self.nivel_riesgo_calculado_persistido = self.nivel_riesgo_calculado
+        self.save(update_fields=[
+            'critico_flag', 'sospechoso_flag',
+            'riesgo_inconsistente_flag', 'nivel_riesgo_calculado_persistido'
+        ])
 
     def __str__(self):
         return f"{self.nombres} {self.apellidos}"
