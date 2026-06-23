@@ -134,25 +134,206 @@
         <!-- PACIENTES -->
         <div id="section-pacientes" class="view-section d-none">
           <h5 class="fw-bold mb-4">Gestión de Pacientes</h5>
-          <div class="card shadow-sm mb-3">
-            <div class="card-body pb-2">
-              <div class="row g-2 align-items-center">
-                <div class="col-md-5">
-                  <div class="input-group">
-                    <span class="input-group-text"><i class="bi bi-search"></i></span>
-                    <input type="text" id="search-pacientes" class="form-control" placeholder="Buscar paciente..." />
+
+          <!-- EDICIÓN IMPOSIBLES / DATOS RAROS (panel lateral) -->
+          <div class="row g-3 mb-3">
+            <div class="col-12">
+              <div id="section-pacientes-edicion" class="card shadow-sm d-none">
+                <div class="card-header fw-semibold bg-white d-flex align-items-center justify-content-between flex-wrap gap-2">
+                  <span><i class="bi bi-tools me-2"></i>Edición de Imposibles / Datos Raros</span>
+                  <div class="d-flex gap-2">
+                    <button class="btn btn-sm btn-outline-secondary" id="btn-clear-edit"><i class="bi bi-eraser me-1"></i>Limpiar</button>
+                    <button class="btn btn-sm btn-primary" id="btn-save-edit"><i class="bi bi-check2-circle me-1"></i>Guardar</button>
                   </div>
                 </div>
-                <div class="col-md-7 d-flex flex-wrap gap-2">
-                  <button class="btn btn-sm btn-filter" data-riesgo="">Todos</button>
-                  <button class="btn btn-sm btn-filter btn-riesgo-bajo" data-riesgo="Bajo">Bajo</button>
-                  <button class="btn btn-sm btn-filter btn-riesgo-medio" data-riesgo="Medio">Medio</button>
-                  <button class="btn btn-sm btn-filter btn-riesgo-alto" data-riesgo="Alto">Alto</button>
-                  <button class="btn btn-sm btn-filter btn-riesgo-critico" data-riesgo="Crítico">Crítico</button>
+                <div class="card-body">
+                  <div class="row g-3">
+                    <div class="col-lg-4">
+                      <label class="form-label fw-semibold">Paciente Seleccionado</label>
+                      <div class="p-3 rounded" style="background: rgba(0,51,160,0.04); border: 1px solid rgba(0,51,160,0.12);">
+                        <div class="d-flex align-items-center justify-content-between">
+                          <div>
+                            <div class="text-muted small">ID</div>
+                            <div class="fw-bold" id="edit-paciente-id">—</div>
+                          </div>
+                          <div class="text-end">
+                            <div class="text-muted small">Revisado</div>
+                            <div class="fw-bold" id="edit-paciente-revisado">—</div>
+                          </div>
+                        </div>
+                        <div class="mt-2">
+                          <div class="text-muted small">Nombre</div>
+                          <div class="fw-semibold" id="edit-paciente-nombre">—</div>
+                        </div>
+                        <div class="mt-2 d-flex align-items-center gap-2">
+                          <div>
+                            <div class="text-muted small">Riesgo Asignado</div>
+                            <div class="fw-bold" id="edit-riesgo-asignado">—</div>
+                          </div>
+                          <div class="text-muted mx-1">→</div>
+                          <div>
+                            <div class="text-muted small">Riesgo Calculado</div>
+                            <div class="fw-bold" id="edit-riesgo-calculado">—</div>
+                          </div>
+                        </div>
+                        <div id="edit-riesgo-inconsistente-warning" class="mt-2 d-none">
+                          <div class="alert alert-warning py-2 px-3 mb-0 small" role="alert" style="word-break: break-word; overflow-wrap: break-word;">
+                            <i class="bi bi-exclamation-triangle me-1"></i><span></span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div class="mt-3">
+                        <label class="form-label fw-semibold">Marcar como revisado</label>
+                        <div class="form-check form-switch">
+                          <input class="form-check-input" type="checkbox" role="switch" id="edit-revisado-switch" />
+                          <label class="form-check-label" for="edit-revisado-switch" id="edit-revisado-label">Sin definir</label>
+                        </div>
+                      </div>
+
+                      <div class="mt-3">
+                        <label class="form-label fw-semibold">Alertas de Datos Raros</label>
+                        <div id="edit-alertas" class="small text-muted">
+                          Selecciona un paciente para ver alertas.
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="col-lg-8">
+                      <label class="form-label fw-semibold">Campos Clínicos a Editar</label>
+                      <form id="form-edicion-imposibles" class="needs-validation" novalidate>
+                        <div class="row g-3">
+                          <div class="col-md-4">
+                            <label class="form-label" for="ed-riesgo">Riesgo Enfermedad</label>
+                            <select class="form-select" id="ed-riesgo" name="riesgo_enfermedad">
+                              <option value="">—</option>
+                              <option value="Bajo">Bajo</option>
+                              <option value="Medio">Medio</option>
+                              <option value="Alto">Alto</option>
+                              <option value="Crítico">Crítico</option>
+                            </select>
+                          </div>
+                          <div class="col-md-4">
+                            <label class="form-label" for="ed-edad">Edad</label>
+                            <input type="number" class="form-control" id="ed-edad" name="edad" min="0" max="120" step="1" />
+                          </div>
+                          <div class="col-md-4">
+                            <label class="form-label" for="ed-sexo">Sexo</label>
+                            <select class="form-select" id="ed-sexo" name="sexo">
+                              <option value="">—</option>
+                              <option value="M">Masculino</option>
+                              <option value="F">Femenino</option>
+                            </select>
+                          </div>
+                          <div class="col-md-4">
+                            <label class="form-label" for="ed-imc">IMC</label>
+                            <input type="number" class="form-control" id="ed-imc" name="imc" step="0.1" />
+                          </div>
+
+                          <div class="col-md-4">
+                            <label class="form-label" for="ed-glucosa">Glucosa</label>
+                            <input type="number" class="form-control" id="ed-glucosa" name="glucosa" step="0.1" />
+                          </div>
+                          <div class="col-md-4">
+                            <label class="form-label" for="ed-colesterol">Colesterol</label>
+                            <input type="number" class="form-control" id="ed-colesterol" name="colesterol" step="0.1" />
+                          </div>
+                          <div class="col-md-4">
+                            <label class="form-label" for="ed-fumo">Fumador</label>
+                            <select class="form-select" id="ed-fumador" name="fumador">
+                              <option value="">—</option>
+                              <option value="true">Sí</option>
+                              <option value="false">No</option>
+                            </select>
+                          </div>
+
+                          <div class="col-md-4">
+                            <label class="form-label" for="ed-ps">Presión Sistólica</label>
+                            <input type="number" class="form-control" id="ed-ps" name="presion_sistolica" step="1" />
+                          </div>
+                          <div class="col-md-4">
+                            <label class="form-label" for="ed-pd">Presión Diastólica</label>
+                            <input type="number" class="form-control" id="ed-pd" name="presion_diastolica" step="1" />
+                          </div>
+                          <div class="col-md-4">
+                            <label class="form-label" for="ed-fc">Frecuencia Cardíaca</label>
+                            <input type="number" class="form-control" id="ed-fc" name="frecuencia_cardiaca" step="1" />
+                          </div>
+
+                          <div class="col-md-4">
+                            <label class="form-label" for="ed-sao2">Sat. Oxígeno</label>
+                            <input type="number" class="form-control" id="ed-sao2" name="saturacion_oxigeno" step="0.1" />
+                          </div>
+                          <div class="col-md-4">
+                            <label class="form-label" for="ed-temp">Temperatura</label>
+                            <input type="number" class="form-control" id="ed-temp" name="temperatura" step="0.1" />
+                          </div>
+                          <div class="col-md-4">
+                            <label class="form-label" for="ed-glu">Antecedentes Familiares</label>
+                            <select class="form-select" id="ed-antecedentes" name="antecedentes_familiares">
+                              <option value="">—</option>
+                              <option value="true">Sí</option>
+                              <option value="false">No</option>
+                            </select>
+                          </div>
+
+                          <div class="col-md-4">
+                            <label class="form-label" for="ed-alcohol">Consumo Alcohol</label>
+                            <select class="form-select" id="ed-alcohol" name="consumo_alcohol">
+                              <option value="">—</option>
+                              <option value="true">Sí</option>
+                              <option value="false">No</option>
+                            </select>
+                          </div>
+                          <div class="col-md-4">
+                            <label class="form-label" for="ed-peso">Peso</label>
+                            <input type="number" class="form-control" id="ed-peso" name="peso" step="0.1" />
+                          </div>
+                          <div class="col-md-4">
+                            <label class="form-label" for="ed-altura">Altura</label>
+                            <input type="number" class="form-control" id="ed-altura" name="altura" step="0.1" />
+                          </div>
+
+                          <div class="col-md-12">
+                            <div class="alert alert-info py-2 mb-0 small" id="edit-help">
+                              Tip: si cambias signos vitales o parámetros clínicos, los KPIs se actualizarán al guardar.
+                            </div>
+                          </div>
+                        </div>
+                      </form>
+                      <div id="edit-result" class="mt-3 d-none"></div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
+
+<div class="card shadow-sm mb-3">
+                   <div class="card-body pb-2">
+             <div class="row g-2 align-items-center">
+               <div class="col-md-5">
+                 <div class="input-group">
+                   <span class="input-group-text"><i class="bi bi-search"></i></span>
+                   <input type="text" id="search-pacientes" class="form-control" placeholder="Buscar paciente..." />
+                 </div>
+               </div>
+               <div class="col-md-7 d-flex flex-wrap gap-2">
+                 <button class="btn btn-sm btn-outline-secondary" id="btn-recargar-pacientes" title="Recargar datos">
+                   <i class="bi bi-arrow-clockwise me-1"></i>Recargar
+                 </button>
+                 <button class="btn btn-sm btn-filter" data-riesgo="">Todos</button>
+                <button class="btn btn-sm btn-filter btn-riesgo-bajo" data-riesgo="Bajo">Bajo</button>
+                <button class="btn btn-sm btn-filter btn-riesgo-medio" data-riesgo="Medio">Medio</button>
+                <button class="btn btn-sm btn-filter btn-riesgo-alto" data-riesgo="Alto">Alto</button>
+                <button class="btn btn-sm btn-filter btn-riesgo-critico" data-riesgo="Crítico">Crítico</button>
+                <button class="btn btn-sm btn-filter" data-riesgo="__inconsistentes__">Riesgo Inconsistente</button>
+                <button class="btn btn-sm btn-filter" data-riesgo="__imposibles__">Rangos Imposibles</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
           <div class="card shadow-sm">
             <div class="card-body p-0">
               <div class="table-responsive">
